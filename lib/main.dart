@@ -299,12 +299,12 @@ class _HomePageState extends State<HomePage> {
             children: [
              const Icon(Icons.restaurant_menu, size: 80, color: Colors.deepOrange),
               const SizedBox(height: 20),
-              Text(
+              const Text(
                 'FoodPassport AI',
-                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
-              Text(
+              const Text(
                 'Advanced AI Food Recognition & Analysis',
                 style: TextStyle(fontSize: 16, color: Colors.grey),
                 textAlign: TextAlign.center,

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 class RecipeScreen extends StatefulWidget {
   final String dishName;
@@ -35,7 +35,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
               const SizedBox(height: 10),
               ...(widget.foodData!['ingredients'] as List<String>).map((ingredient) => 
                 Text('• $ingredient')
-              ).toList(),
+              ),
               const SizedBox(height: 20),
               const Text(
                 'Instructions:',

@@ -19,7 +19,7 @@ class FoodRecognitionService {
       // We'll implement a fallback to text-based detection
       return await _detectFoodFromTextDescription();
     } catch (e) {
-      print('Food recognition error: $e');
+      ('Food recognition error: $e');
       return 'Unknown Dish';
     }
   }
@@ -60,7 +60,7 @@ class FoodRecognitionService {
       // Fallback to Open Food Facts
       return await _getFoodDetailsFromOpenFoodFacts(foodName);
     } catch (e) {
-      print('Food details error: $e');
+      ('Food details error: $e');
       return null;
     }
   }

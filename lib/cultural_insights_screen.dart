@@ -44,7 +44,7 @@ class _CulturalInsightsScreenState extends State<CulturalInsightsScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.public, size: 64, color: Colors.grey),
+                   const Icon(Icons.public, size: 64, color: Colors.grey),
                     const SizedBox(height: 16),
                     Text(
                       'Cultural Insights for ${widget.dishName}',

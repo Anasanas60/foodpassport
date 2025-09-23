@@ -21,7 +21,7 @@ class FoodApiService {
       }
       return null;
     } catch (e) {
-      print('Dish search error: $e');
+      ('Dish search error: $e');
       return null;
     }
   }
@@ -35,7 +35,7 @@ class FoodApiService {
       }
       return null;
     } catch (e) {
-      print('Recipe fetch error: $e');
+      ('Recipe fetch error: $e');
       return null;
     }
   }
@@ -58,7 +58,7 @@ class FoodApiService {
       }
       return ingredients;
     } catch (e) {
-      print('Ingredients fetch error: $e');
+     ('Ingredients fetch error: $e');
       return [];
     }
   }
@@ -69,7 +69,7 @@ class FoodApiService {
       final dishData = await searchDish(dishName);
       return dishData?['strMealThumb'];
     } catch (e) {
-      print('Image fetch error: $e');
+      ('Image fetch error: $e');
       return null;
     }
   }
