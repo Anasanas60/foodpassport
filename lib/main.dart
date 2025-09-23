@@ -1,12 +1,12 @@
 // ignore: avoid_web_libraries_in_flutter
 import 'package:firebase_core/firebase_core.dart';
-import 'dart:html' as html;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:path_provider/path_provider.dart';
+import 'package:foodpassport/services/food_api_service.dart';
+import 'package:foodpassport/services/advanced_food_recognition.dart';
 
 // Import all your screens
 import 'package:foodpassport/preferences_screen.dart';
@@ -26,7 +26,7 @@ void main() async {
       appId: "1:1234567890:web:abcdef123456",
       messagingSenderId: "387382766417",
       projectId: "foodpassport-a4992",
-       ),
+    ),
   );
   runApp(const FoodPassportApp());
 }
@@ -71,6 +71,8 @@ class _HomePageState extends State<HomePage> {
   bool hasAllergyWarning = false;
   XFile? selectedImage;
   String? pickedFrom;
+  Uint8List? webImageBytes;
+  Map<String, dynamic>? currentFoodData; // NEW: Store comprehensive food data
 
   bool avoidNuts = false;
   bool avoidDairy = false;
@@ -79,85 +81,175 @@ class _HomePageState extends State<HomePage> {
 
   final ImagePicker _picker = ImagePicker();
 
-  Future<void> _pickImage(ImageSource source) async {
-    if (source == ImageSource.camera && !kIsWeb) {
-      final image = await _picker.pickImage(source: source);
-      if (image != null) {
-        setState(() {
-          selectedImage = image;
-          pickedFrom = "📸 Taken with Camera";
-        });
-        _simulateAIAnalysis();
+  // NEW: Test Advanced AI System
+  Future<void> _testAdvancedAI() async {
+    print('🧪 Testing Advanced AI System...');
+    
+    try {
+      // Test the advanced food recognition
+      final foodData = await AdvancedFoodRecognition.detectFood(
+        XFile('test'), 
+        userLocation: userLocation
+      );
+      
+      print('✅ AI Detection Successful!');
+      print('🍜 Dish: ${foodData['dishName']}');
+      print('🎯 Confidence: ${(foodData['confidence'] * 100).toStringAsFixed(1)}%');
+      print('📋 Ingredients: ${foodData['ingredients'].length} items');
+      print('⚠️ Allergens: ${foodData['allergens']}');
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ Advanced AI Working! Detected: ${foodData['dishName']}'),
+            duration: Duration(seconds: 3),
+          ),
+        );
       }
-    } else if (source == ImageSource.camera && kIsWeb) {
-      // Web: Use HTML5 camera capture
-      final input = html.FileUploadInputElement(); // ✅ Now works
-      input.accept = 'image/*';
-      input.attributes['capture'] = 'environment';
-      input.click();
-
-      input.onChange.listen((event) async {
-        if (input.files!.isNotEmpty) {
-          final file = input.files![0];
-          final reader = html.FileReader(); // ✅ Now works
-          reader.readAsArrayBuffer(file);
-
-          reader.onLoadEnd.listen((e) async {
-            final buffer = reader.result as ByteBuffer;
-            final tempDir = await getTemporaryDirectory();
-            final path = '${tempDir.path}/${file.name}';
-            final newFile = File(path);
-            await newFile.writeAsBytes(buffer.asUint8List());
-
-            if (mounted) {
-              setState(() {
-                selectedImage = XFile(newFile.path, name: file.name);
-                pickedFrom = "📸 Taken with Camera";
-              });
-
-              _simulateAIAnalysis();
-            }
-          });
-        }
-      });
-    } else {
-      final image = await _picker.pickImage(source: source);
-      if (image != null) {
-        setState(() {
-          selectedImage = image;
-          pickedFrom = "🖼️ Uploaded from Gallery";
-        });
-        _simulateAIAnalysis();
+    } catch (e) {
+      print('❌ Advanced AI Test Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ AI Error: ${e.toString()}')),
+        );
       }
     }
   }
 
-  void _simulateAIAnalysis() async {
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 600,
+        imageQuality: 50,
+      );
+
+      if (image != null) {
+        if (kIsWeb) {
+          final bytes = await image.readAsBytes();
+          setState(() {
+            webImageBytes = bytes;
+            selectedImage = image;
+            pickedFrom = source == ImageSource.camera ? "📸 Taken with Camera" : "🖼️ Uploaded from Gallery";
+          });
+        } else {
+          setState(() {
+            webImageBytes = null;
+            selectedImage = image;
+            pickedFrom = source == ImageSource.camera ? "📸 Taken with Camera" : "🖼️ Uploaded from Gallery";
+          });
+        }
+        _analyzeFoodWithAI(); // CHANGED: Now calls advanced AI function
+      }
+    } catch (e) {
+      print('Image picker error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    }
+  }
+
+  // NEW: Advanced AI Food Detection
+  void _analyzeFoodWithAI() async {
     setState(() {
       isAnalyzing = true;
       resultDish = null;
       hasAllergyWarning = false;
+      currentFoodData = null;
     });
 
-    await Future.delayed(const Duration(seconds: 2));
-
-    String detectedDish = "Pad Thai";
-    List<String> detectedIngredients = ["Peanuts", "Fish Sauce", "Rice Noodles", "Egg"];
-
-    bool warning = false;
-    if (avoidNuts && detectedIngredients.contains("Peanuts")) warning = true;
-    if (avoidDairy && detectedIngredients.contains("Milk")) warning = true;
-    if (avoidGluten && detectedIngredients.contains("Wheat")) warning = true;
-    if (isVegan && ["Fish Sauce", "Egg", "Milk"].any((ingredient) => detectedIngredients.contains(ingredient))) {
-      warning = true;
+    try {
+      // ADVANCED AI FOOD DETECTION
+      final foodData = await AdvancedFoodRecognition.detectFood(
+        selectedImage!, 
+        userLocation: userLocation
+      );
+      
+      final String detectedDish = foodData['dishName'];
+      final List<String> ingredients = List<String>.from(foodData['ingredients']);
+      final List<String> allergens = List<String>.from(foodData['allergens']);
+      final double confidence = foodData['confidence'];
+      
+      // Check against user preferences with enhanced logic
+      bool warning = _checkAllergyWarning(allergens);
+      
+      if (mounted) {
+        setState(() {
+          isAnalyzing = false;
+          resultDish = detectedDish;
+          hasAllergyWarning = warning;
+          currentFoodData = foodData; // Store comprehensive data
+        });
+      }
+      
+      // Log AI confidence level
+      print('🎯 AI Detection Confidence: ${(confidence * 100).toStringAsFixed(1)}%');
+      print('🍜 Detected Dish: $detectedDish');
+      print('📋 Ingredients: $ingredients');
+      print('⚠️ Allergens: $allergens');
+      
+    } catch (e) {
+      print('Advanced food analysis error: $e');
+      if (mounted) {
+        setState(() {
+          isAnalyzing = false;
+          resultDish = "AI analysis failed. Please try again.";
+          hasAllergyWarning = false;
+        });
+      }
     }
+  }
 
-    if (mounted) {
-      setState(() {
-        isAnalyzing = false;
-        resultDish = detectedDish;
-        hasAllergyWarning = warning;
-      });
+  bool _checkAllergyWarning(List<String> allergens) {
+    if (avoidNuts && allergens.any((allergen) => allergen.contains('nut'))) return true;
+    if (avoidDairy && allergens.any((allergen) => allergen.contains('dairy'))) return true;
+    if (avoidGluten && allergens.any((allergen) => allergen.contains('gluten'))) return true;
+    if (isVegan && allergens.any((allergen) => ['egg', 'dairy', 'fish', 'meat'].any((v) => allergen.contains(v)))) {
+      return true;
+    }
+    return false;
+  }
+
+  // NEW: Enhanced navigation with real data
+  void _navigateToRecipeScreen() {
+    if (currentFoodData != null && resultDish != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => RecipeScreen(
+            dishName: resultDish!,
+            foodData: currentFoodData!, // Pass real data
+          ),
+        ),
+      );
+    }
+  }
+
+  void _navigateToCulturalScreen() {
+    if (currentFoodData != null && resultDish != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CulturalInsightsScreen(
+            dishName: resultDish!,
+            foodData: currentFoodData!, // Pass real data
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildImagePreview() {
+    if (kIsWeb && webImageBytes != null) {
+      return Image.memory(webImageBytes!, fit: BoxFit.cover);
+    } else if (!kIsWeb && selectedImage != null) {
+      return Image.file(File(selectedImage!.path), fit: BoxFit.cover);
+    } else {
+      return Container(
+        color: Colors.grey[200],
+        child: Icon(Icons.photo, size: 60, color: Colors.grey[400]),
+      );
     }
   }
 
@@ -201,15 +293,27 @@ class _HomePageState extends State<HomePage> {
               Icon(Icons.restaurant_menu, size: 80, color: Colors.deepOrange),
               const SizedBox(height: 20),
               Text(
-                'FoodPassport',
+                'FoodPassport AI',
                 style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
               Text(
-                'Scan. Discover. Taste the World.',
+                'Advanced AI Food Recognition & Analysis',
                 style: TextStyle(fontSize: 16, color: Colors.grey),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
+
+              // NEW: Advanced AI Test Button
+              ElevatedButton(
+                onPressed: _testAdvancedAI,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+                child: const Text('🧠 Test Advanced AI', style: TextStyle(fontSize: 16)),
+              ),
+              const SizedBox(height: 10),
 
               if (selectedImage != null) ...[
                 Container(
@@ -221,10 +325,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: Image.file(
-                      File(selectedImage!.path),
-                      fit: BoxFit.cover,
-                    ),
+                    child: _buildImagePreview(),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -296,8 +397,13 @@ class _HomePageState extends State<HomePage> {
                 const CircularProgressIndicator(color: Colors.deepOrange),
                 const SizedBox(height: 20),
                 const Text(
-                  'Analyzing your dish...',
+                  '🧠 Advanced AI Analyzing...',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Using multi-API intelligence',
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
                 ),
               ],
 
@@ -311,9 +417,16 @@ class _HomePageState extends State<HomePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '🎉 Dish Identified: $resultDish',
+                          '🎉 AI Identified: $resultDish',
                           style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                         ),
+                        if (currentFoodData?['confidence'] != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            '🎯 Confidence: ${(currentFoodData!['confidence'] * 100).toStringAsFixed(1)}%',
+                            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                          ),
+                        ],
                         const SizedBox(height: 16),
                         if (hasAllergyWarning) ...[
                           Container(
@@ -340,22 +453,12 @@ class _HomePageState extends State<HomePage> {
                           spacing: 12,
                           children: [
                             ElevatedButton(
-                              onPressed: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => RecipeScreen(dishName: resultDish!),
-                                ),
-                              ),
-                              child: const Text('👩‍🍳 Recipe'),
+                              onPressed: _navigateToRecipeScreen,
+                              child: const Text('👩‍🍳 Recipe & Ingredients'),
                             ),
                             ElevatedButton(
-                              onPressed: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => CulturalInsightsScreen(dishName: resultDish!),
-                                ),
-                              ),
-                              child: const Text('🌏 Culture'),
+                              onPressed: _navigateToCulturalScreen,
+                              child: const Text('🌏 Culture & Origin'),
                             ),
                           ],
                         ),
@@ -366,7 +469,9 @@ class _HomePageState extends State<HomePage> {
                               resultDish = null;
                               hasAllergyWarning = false;
                               selectedImage = null;
+                              webImageBytes = null;
                               pickedFrom = null;
+                              currentFoodData = null;
                             }),
                             child: const Text('Try Another Dish →'),
                           ),

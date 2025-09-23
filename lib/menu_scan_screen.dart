@@ -9,7 +9,7 @@ import 'dart:io';
 import 'package:foodpassport/services/ocr_service.dart';
 import 'package:foodpassport/services/ocr_service_mobile.dart';
 import 'package:foodpassport/services/ocr_service_web.dart';
-import 'package:foodpassport/services/translation_service.dart'; // ← ADD THIS
+import 'package:foodpassport/services/translation_service.dart';
 
 class MenuScanScreen extends StatefulWidget {
   const MenuScanScreen({super.key});
@@ -26,7 +26,7 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
 
   final ImagePicker _picker = ImagePicker();
   late final OcrService _ocrService;
-  final TranslationService _translationService = TranslationService(); // ← ADD THIS
+  final TranslationService _translationService = TranslationService();
 
   @override
   void initState() {
@@ -42,53 +42,63 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
       webImage = null;
     });
 
-    final image = await _picker.pickImage(source: ImageSource.camera);
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 800,      // REDUCED: Prevent memory issues
+        maxHeight: 600,     // REDUCED: Prevent memory issues  
+        imageQuality: 40,   // REDUCED: Lower quality for mobile browsers
+      );
 
-    if (image != null) {
-      if (kIsWeb) {
-        final imageBytes = await image.readAsBytes();
-        setState(() {
-          webImage = imageBytes;
-        });
-      } else {
-        setState(() {
-          capturedImage = image;
-        });
-      }
-
-      try {
-        String extractedText = await _ocrService.recognizeText(image);
-
-        if (extractedText.trim().isEmpty) {
-          extractedText = "No text detected. Try again with better lighting or focus.";
+      if (image != null) {
+        if (kIsWeb) {
+          final imageBytes = await image.readAsBytes();
+          setState(() {
+            webImage = imageBytes;
+          });
+        } else {
+          setState(() {
+            capturedImage = image;
+          });
         }
 
-        // REAL TRANSLATION - NO MORE MOCK!
-        String translatedText = await _translateText(extractedText);
+        try {
+          String extractedText = await _ocrService.recognizeText(image);
 
+          if (extractedText.trim().isEmpty) {
+            extractedText = "No text detected. Try again with better lighting or focus.";
+          }
+
+          // REAL TRANSLATION
+          String translatedText = await _translateText(extractedText);
+
+          setState(() {
+            isScanning = false;
+            scannedText = translatedText;
+          });
+        } catch (e) {
+          setState(() {
+            isScanning = false;
+            scannedText = "OCR Error: ${e.toString()}";
+          });
+        }
+      } else {
         setState(() {
           isScanning = false;
-          scannedText = translatedText;
-        });
-      } catch (e) {
-        setState(() {
-          isScanning = false;
-          scannedText = "Error: $e";
         });
       }
-    } else {
+    } catch (e) {
       setState(() {
         isScanning = false;
+        scannedText = "Camera Error: ${e.toString()}";
       });
     }
   }
 
   Future<String> _translateText(String text) async {
     try {
-      // Get user's preferred language (you can later get this from settings)
       String targetLang = _getUserLanguage();
       
-      // Skip translation if target is English
       if (targetLang == 'en') {
         return '''
 ✨ OCR RESULT (English) ✨
@@ -99,7 +109,6 @@ ____________________________________
         ''';
       }
 
-      // Translate using our free service
       String translated = await _translationService.translate(text, targetLang);
       
       return '''
@@ -111,7 +120,6 @@ $text
 ⚠️ Contains allergens: peanuts, shellfish (if detected)
       ''';
     } catch (e) {
-      // Fallback to original text if translation fails
       return '''
 🔄 TRANSLATION FAILED - Showing original text
 Error: $e
@@ -123,125 +131,13 @@ $text
   }
 
   String _getUserLanguage() {
-    // Later: Get from user preferences
-    // For now, let's use Thai ('th') since you're in Bangkok!
-    return 'th'; // Change to 'ja', 'zh', 'fr', 'es', etc. to test other languages
+    return 'th'; // Thai language for testing
   }
 
   String _getLanguageName(String code) {
     final languages = {
-      'es': 'Spanish',
-      'fr': 'French',
-      'de': 'German',
-      'it': 'Italian',
-      'pt': 'Portuguese',
-      'zh': 'Chinese',
-      'ja': 'Japanese',
-      'ko': 'Korean',
-      'th': 'Thai',
-      'vi': 'Vietnamese',
-      'ru': 'Russian',
-      'ar': 'Arabic',
-      'hi': 'Hindi',
-      'bn': 'Bengali',
-      'ur': 'Urdu',
-      'sw': 'Swahili',
-      'fa': 'Persian',
-      'tr': 'Turkish',
-      'nl': 'Dutch',
-      'pl': 'Polish',
-      'uk': 'Ukrainian',
-      'el': 'Greek',
-      'he': 'Hebrew',
-      'cs': 'Czech',
-      'hu': 'Hungarian',
-      'ro': 'Romanian',
-      'da': 'Danish',
-      'fi': 'Finnish',
-      'sv': 'Swedish',
-      'no': 'Norwegian',
-      'id': 'Indonesian',
-      'ms': 'Malay',
-      'tl': 'Tagalog',
-      'my': 'Burmese',
-      'km': 'Khmer',
-      'lo': 'Lao',
-      'si': 'Sinhala',
-      'ne': 'Nepali',
-      'gu': 'Gujarati',
-      'ta': 'Tamil',
-      'te': 'Telugu',
-      'mr': 'Marathi',
-      'kn': 'Kannada',
-      'ml': 'Malayalam',
-      'pa': 'Punjabi',
-      'am': 'Amharic',
-      'om': 'Oromo',
-      'so': 'Somali',
-      'ha': 'Hausa',
-      'yo': 'Yoruba',
-      'ig': 'Igbo',
-      'zu': 'Zulu',
-      'xh': 'Xhosa',
-      'af': 'Afrikaans',
-      'ny': 'Chichewa',
-      'sn': 'Shona',
-      'st': 'Sesotho',
-      'tg': 'Tajik',
-      'uz': 'Uzbek',
-      'kk': 'Kazakh',
-      'ky': 'Kyrgyz',
-      'mn': 'Mongolian',
-      'bo': 'Tibetan',
-      'sd': 'Sindhi',
-      'ps': 'Pashto',
-      'ku': 'Kurdish',
-      'ckb': 'Sorani Kurdish',
-      'dv': 'Dhivehi',
-      'ff': 'Fulah',
-      'bm': 'Bambara',
-      'mg': 'Malagasy',
-      'ln': 'Lingala',
-      'tn': 'Tswana',
-      'rw': 'Kinyarwanda',
-      'rn': 'Kirundi',
-      'sg': 'Sango',
-      'ti': 'Tigrinya',
-      'ak': 'Akan',
-      'ee': 'Ewe',
-      'tw': 'Twi',
-      'hz': 'Herero',
-      'kj': 'Kuanyama',
-      'lg': 'Ganda',
-      'mt': 'Maltese',
-      'cy': 'Welsh',
-      'ga': 'Irish',
-      'gd': 'Scottish Gaelic',
-      'gv': 'Manx',
-      'kw': 'Cornish',
-      'br': 'Breton',
-      'co': 'Corsican',
-      'oc': 'Occitan',
-      'ca': 'Catalan',
-      'eu': 'Basque',
-      'gl': 'Galician',
-      'fy': 'Frisian',
-      'lb': 'Luxembourgish',
-      'is': 'Icelandic',
-      'fo': 'Faroese',
-      'sm': 'Samoan',
-      'to': 'Tongan',
-      'fj': 'Fijian',
-      'mh': 'Marshallese',
-      'na': 'Nauruan',
-      'ki': 'Kikuyu',
-      'lu': 'Luba-Katanga',
-      'kg': 'Kongo',
-      'ts': 'Tsonga',
-      'ss': 'Swati',
-      've': 'Venda',
-      'nr': 'South Ndebele',
-      'nd': 'North Ndebele',
+      'th': 'Thai', 'es': 'Spanish', 'fr': 'French', 'de': 'German', 
+      'it': 'Italian', 'pt': 'Portuguese', 'zh': 'Chinese', 'ja': 'Japanese'
     };
     return languages[code] ?? code.toUpperCase();
   }
@@ -252,7 +148,7 @@ $text
     } else if (!kIsWeb && capturedImage != null) {
       return Image.file(File(capturedImage!.path), fit: BoxFit.cover);
     } else {
-      return Container(); // Should not happen
+      return Container();
     }
   }
 
