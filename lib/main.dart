@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:foodpassport/services/food_api_service.dart';
 import 'package:foodpassport/services/advanced_food_recognition.dart';
 
 // Import all your screens
@@ -43,8 +42,8 @@ class FoodPassportApp extends StatelessWidget {
         '/': (context) => const HomePage(),
         '/preferences': (context) => const PreferencesScreen(),
         '/userform': (context) => const UserFormScreen(),
-        '/recipe': (context) => RecipeScreen(dishName: ""),
-        '/cultural': (context) => CulturalInsightsScreen(dishName: ""),
+        '/recipe': (context) => const RecipeScreen(dishName: ""),
+        '/cultural': (context) => const CulturalInsightsScreen(dishName: ""),
         '/journal': (context) => const FoodJournalScreen(),
         '/map': (context) => const MapScreen(),
         '/menuscan': (context) => const MenuScanScreen(),
@@ -83,7 +82,7 @@ class _HomePageState extends State<HomePage> {
 
   // Test Advanced AI System
   Future<void> _testAdvancedAI() async {
-    print('🧪 Testing Advanced AI System...');
+    ('🧪 Testing Advanced AI System...');
     
     try {
       // Create a mock XFile for testing
@@ -92,11 +91,11 @@ class _HomePageState extends State<HomePage> {
         userLocation: userLocation
       );
       
-      print('✅ AI Detection Successful!');
-      print('🍜 Dish: ${foodData['dishName']}');
-      print('🎯 Confidence: ${(foodData['confidence'] * 100).toStringAsFixed(1)}%');
-      print('📋 Ingredients: ${foodData['ingredients'].length} items');
-      print('⚠️ Allergens: ${foodData['allergens']}');
+      ('✅ AI Detection Successful!');
+      ('🍜 Dish: ${foodData['dishName']}');
+      ('🎯 Confidence: ${(foodData['confidence'] * 100).toStringAsFixed(1)}%');
+      ('📋 Ingredients: ${foodData['ingredients'].length} items');
+      ('⚠️ Allergens: ${foodData['allergens']}');
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -107,7 +106,7 @@ class _HomePageState extends State<HomePage> {
         );
       }
     } catch (e) {
-      print('❌ Advanced AI Test Error: $e');
+      ('❌ Advanced AI Test Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('❌ AI Error: ${e.toString()}')),
@@ -143,11 +142,13 @@ class _HomePageState extends State<HomePage> {
         _analyzeFoodWithAI();
       }
     } catch (e) {
-      print('Image picker error: $e');
+      ('Image picker error: $e');
+      if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
     }
+  }
   }
 
   // Advanced AI Food Detection
@@ -184,13 +185,13 @@ class _HomePageState extends State<HomePage> {
       }
       
       // Log AI confidence level
-      print('🎯 AI Detection Confidence: ${(confidence * 100).toStringAsFixed(1)}%');
-      print('🍜 Detected Dish: $detectedDish');
-      print('📋 Ingredients: $ingredients');
-      print('⚠️ Allergens: $allergens');
+      ('🎯 AI Detection Confidence: ${(confidence * 100).toStringAsFixed(1)}%');
+      ('🍜 Detected Dish: $detectedDish');
+      ('📋 Ingredients: $ingredients');
+      ('⚠️ Allergens: $allergens');
       
     } catch (e) {
-      print('Advanced food analysis error: $e');
+      ('Advanced food analysis error: $e');
       if (mounted) {
         setState(() {
           isAnalyzing = false;
@@ -296,11 +297,11 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.restaurant_menu, size: 80, color: Colors.deepOrange),
+             const Icon(Icons.restaurant_menu, size: 80, color: Colors.deepOrange),
               const SizedBox(height: 20),
               Text(
                 'FoodPassport AI',
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
               Text(
