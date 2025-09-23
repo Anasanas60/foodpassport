@@ -1,13 +1,13 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 class RecipeScreen extends StatefulWidget {
   final String dishName;
-  final Map<String, dynamic>? foodData;
+  final Map<String, dynamic>? foodData; // NEW: Add foodData parameter
   
   const RecipeScreen({
     super.key,
     required this.dishName,
-    this.foodData,
+    this.foodData, // NEW: Make it optional
   });
 
   @override
@@ -27,8 +27,9 @@ class _RecipeScreenState extends State<RecipeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Use real data if available, otherwise show placeholder
             if (widget.foodData != null) ...[
-              const Text(
+              Text(
                 'Ingredients:',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
@@ -37,25 +38,26 @@ class _RecipeScreenState extends State<RecipeScreen> {
                 Text('• $ingredient')
               ).toList(),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'Instructions:',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
               Text(widget.foodData!['recipe'] ?? 'No recipe available.'),
             ] else ...[
+              // Fallback if no foodData provided
               Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.restaurant, size: 64, color: Colors.grey),
+                    Icon(Icons.restaurant, size: 64, color: Colors.grey),
                     const SizedBox(height: 16),
                     Text(
                       'Recipe for ${widget.dishName}',
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
-                    const Text('Recipe information will be displayed here.'),
+                    Text('Recipe information will be displayed here.'),
                   ],
                 ),
               ),

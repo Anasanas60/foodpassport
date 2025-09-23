@@ -72,7 +72,7 @@ class _HomePageState extends State<HomePage> {
   XFile? selectedImage;
   String? pickedFrom;
   Uint8List? webImageBytes;
-  Map<String, dynamic>? currentFoodData; // NEW: Store comprehensive food data
+  Map<String, dynamic>? currentFoodData;
 
   bool avoidNuts = false;
   bool avoidDairy = false;
@@ -81,12 +81,12 @@ class _HomePageState extends State<HomePage> {
 
   final ImagePicker _picker = ImagePicker();
 
-  // NEW: Test Advanced AI System
+  // Test Advanced AI System
   Future<void> _testAdvancedAI() async {
     print('🧪 Testing Advanced AI System...');
     
     try {
-      // Test the advanced food recognition
+      // Create a mock XFile for testing
       final foodData = await AdvancedFoodRecognition.detectFood(
         XFile('test'), 
         userLocation: userLocation
@@ -102,7 +102,7 @@ class _HomePageState extends State<HomePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('✅ Advanced AI Working! Detected: ${foodData['dishName']}'),
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -140,7 +140,7 @@ class _HomePageState extends State<HomePage> {
             pickedFrom = source == ImageSource.camera ? "📸 Taken with Camera" : "🖼️ Uploaded from Gallery";
           });
         }
-        _analyzeFoodWithAI(); // CHANGED: Now calls advanced AI function
+        _analyzeFoodWithAI();
       }
     } catch (e) {
       print('Image picker error: $e');
@@ -150,7 +150,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // NEW: Advanced AI Food Detection
+  // Advanced AI Food Detection
   void _analyzeFoodWithAI() async {
     setState(() {
       isAnalyzing = true;
@@ -171,7 +171,7 @@ class _HomePageState extends State<HomePage> {
       final List<String> allergens = List<String>.from(foodData['allergens']);
       final double confidence = foodData['confidence'];
       
-      // Check against user preferences with enhanced logic
+      // Check against user preferences
       bool warning = _checkAllergyWarning(allergens);
       
       if (mounted) {
@@ -179,7 +179,7 @@ class _HomePageState extends State<HomePage> {
           isAnalyzing = false;
           resultDish = detectedDish;
           hasAllergyWarning = warning;
-          currentFoodData = foodData; // Store comprehensive data
+          currentFoodData = foodData;
         });
       }
       
@@ -211,7 +211,7 @@ class _HomePageState extends State<HomePage> {
     return false;
   }
 
-  // NEW: Enhanced navigation with real data
+  // FIXED: Enhanced navigation with real data
   void _navigateToRecipeScreen() {
     if (currentFoodData != null && resultDish != null) {
       Navigator.push(
@@ -219,10 +219,13 @@ class _HomePageState extends State<HomePage> {
         MaterialPageRoute(
           builder: (context) => RecipeScreen(
             dishName: resultDish!,
-            foodData: currentFoodData!, // Pass real data
+            foodData: currentFoodData!, // Now this should work
           ),
         ),
       );
+    } else {
+      // Fallback if no data available
+      Navigator.pushNamed(context, '/recipe');
     }
   }
 
@@ -233,10 +236,13 @@ class _HomePageState extends State<HomePage> {
         MaterialPageRoute(
           builder: (context) => CulturalInsightsScreen(
             dishName: resultDish!,
-            foodData: currentFoodData!, // Pass real data
+            foodData: currentFoodData!, // Now this should work
           ),
         ),
       );
+    } else {
+      // Fallback if no data available
+      Navigator.pushNamed(context, '/cultural');
     }
   }
 
@@ -304,7 +310,7 @@ class _HomePageState extends State<HomePage> {
               ),
               const SizedBox(height: 20),
 
-              // NEW: Advanced AI Test Button
+              // Advanced AI Test Button
               ElevatedButton(
                 onPressed: _testAdvancedAI,
                 style: ElevatedButton.styleFrom(

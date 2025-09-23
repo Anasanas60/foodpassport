@@ -1,13 +1,13 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 class CulturalInsightsScreen extends StatefulWidget {
   final String dishName;
-  final Map<String, dynamic>? foodData;
+  final Map<String, dynamic>? foodData; // NEW: Add foodData parameter
   
   const CulturalInsightsScreen({
     super.key,
     required this.dishName,
-    this.foodData,
+    this.foodData, // NEW: Make it optional
   });
 
   @override
@@ -27,19 +27,21 @@ class _CulturalInsightsScreenState extends State<CulturalInsightsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Use real data if available, otherwise show placeholder
             if (widget.foodData != null) ...[
               Text(
                 'Origin: ${widget.foodData!['origin'] ?? 'Unknown'}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'Cultural Information:',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
-              const Text('Cultural insights will be displayed here based on the dish origin.'),
+              Text('Cultural insights will be displayed here based on the dish origin.'),
             ] else ...[
+              // Fallback if no foodData provided
               Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -48,10 +50,10 @@ class _CulturalInsightsScreenState extends State<CulturalInsightsScreen> {
                     const SizedBox(height: 16),
                     Text(
                       'Cultural Insights for ${widget.dishName}',
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
-                    const Text('Cultural information will be displayed here.'),
+                    Text('Cultural information will be displayed here.'),
                   ],
                 ),
               ),
