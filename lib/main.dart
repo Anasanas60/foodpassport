@@ -16,6 +16,10 @@ import 'package:foodpassport/food_journal_screen.dart';
 import 'package:foodpassport/map_screen.dart';
 import 'package:foodpassport/menu_scan_screen.dart';
 import 'package:foodpassport/emergency_alert_screen.dart';
+import 'package:foodpassport/passport_stamps_screen.dart';
+
+// NEW: Import custom animations
+import 'package:foodpassport/animations/custom_page_route.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,8 +52,47 @@ class FoodPassportApp extends StatelessWidget {
         '/map': (context) => const MapScreen(),
         '/menuscan': (context) => const MenuScanScreen(),
         '/emergency': (context) => const EmergencyAlertScreen(),
+        '/passport-stamps': (context) => const PassportStampsScreen(),
+      },
+      // NEW: Custom page transitions for all navigations
+      onGenerateRoute: (settings) {
+        // Define which animation for which screen
+        switch (settings.name) {
+          case '/journal':
+            return SlideUpRoute(page: const FoodJournalScreen());
+          case '/map':
+            return SlideRightRoute(page: const MapScreen());
+          case '/passport-stamps':
+            return ScaleRoute(page: const PassportStampsScreen());
+          case '/menuscan':
+            return SlideUpRoute(page: const MenuScanScreen());
+          case '/preferences':
+            return SlideRightRoute(page: const PreferencesScreen());
+          default:
+            // Default fade animation for other screens
+            return FadeRoute(
+              page: _getPageForRoute(settings.name ?? '/'),
+            );
+        }
       },
     );
+  }
+
+  // Helper method to get the correct page for each route
+  Widget _getPageForRoute(String routeName) {
+    switch (routeName) {
+      case '/': return const HomePage();
+      case '/preferences': return const PreferencesScreen();
+      case '/userform': return const UserFormScreen();
+      case '/recipe': return const RecipeScreen(dishName: "");
+      case '/cultural': return const CulturalInsightsScreen(dishName: "");
+      case '/journal': return const FoodJournalScreen();
+      case '/map': return const MapScreen();
+      case '/menuscan': return const MenuScanScreen();
+      case '/emergency': return const EmergencyAlertScreen();
+      case '/passport-stamps': return const PassportStampsScreen();
+      default: return const HomePage();
+    }
   }
 }
 
@@ -220,12 +263,11 @@ class _HomePageState extends State<HomePage> {
         MaterialPageRoute(
           builder: (context) => RecipeScreen(
             dishName: resultDish!,
-            foodData: currentFoodData!, // Now this should work
+            foodData: currentFoodData!,
           ),
         ),
       );
     } else {
-      // Fallback if no data available
       Navigator.pushNamed(context, '/recipe');
     }
   }
@@ -237,12 +279,11 @@ class _HomePageState extends State<HomePage> {
         MaterialPageRoute(
           builder: (context) => CulturalInsightsScreen(
             dishName: resultDish!,
-            foodData: currentFoodData!, // Now this should work
+            foodData: currentFoodData!,
           ),
         ),
       );
     } else {
-      // Fallback if no data available
       Navigator.pushNamed(context, '/cultural');
     }
   }
@@ -343,6 +384,7 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 20),
               ],
 
+              // Enhanced Navigation Buttons
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
@@ -368,7 +410,35 @@ class _HomePageState extends State<HomePage> {
                   ElevatedButton.icon(
                     onPressed: () => Navigator.pushNamed(context, '/journal'),
                     icon: const Icon(Icons.collections_bookmark, size: 20),
-                    label: const Text('My Journal'),
+                    label: const Text('Food Journal'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () => Navigator.pushNamed(context, '/passport-stamps'),
+                    icon: const Icon(Icons.star, size: 20),
+                    label: const Text('My Stamps'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      backgroundColor: Colors.amber[700],
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () => Navigator.pushNamed(context, '/recipe'),
+                    icon: const Icon(Icons.restaurant_menu, size: 20),
+                    label: const Text('Recipes'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () => Navigator.pushNamed(context, '/cultural'),
+                    icon: const Icon(Icons.public, size: 20),
+                    label: const Text('Culture'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -466,6 +536,11 @@ class _HomePageState extends State<HomePage> {
                             ElevatedButton(
                               onPressed: _navigateToCulturalScreen,
                               child: const Text('🌏 Culture & Origin'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pushNamed(context, '/passport-stamps'),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.amber[700]),
+                              child: const Text('🏆 View Stamps'),
                             ),
                           ],
                         ),

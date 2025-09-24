@@ -5,8 +5,9 @@ publish_to: 'none'
 
 version: 1.0.0+1
 
+# FIX: Added the required SDK constraint
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: '^3.9.0'
 
 dependencies:
   flutter:
@@ -19,10 +20,11 @@ dependencies:
   shared_preferences: ^2.2.2
   firebase_core: ^2.24.1
   image_picker_for_web: ^3.1.0
-  sqflite: ^2.3.0          # NEW: SQLite database
-  path: ^1.8.3             # NEW: Path utilities
-
-  google_mlkit_text_recognition: any
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  geocoding: ^2.1.1
+  # FIX: Properly indented and versioned
+  google_mlkit_text_recognition: 0.15.0
 
 dev_dependencies:
   flutter_test:
@@ -32,3 +34,5 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    # Add your asset paths here, for example:
+    # - assets/images/
