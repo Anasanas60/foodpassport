@@ -6,8 +6,8 @@ import 'food_journal_service.dart';
 
 class FoodRecognitionService {
   // Nutritionix API - Free tier (100 requests/day)
-  static const String apiKey = 'YOUR_API_KEY'; // You'll need to get this
-  static const String appId = 'YOUR_APP_ID';
+  static const String apiKey = '1c7ff5c00fbfe73f21235865e5cf6d16'; // You'll need to get this
+  static const String appId = 'e9ec091f';
   static const String baseUrl = 'https://trackapi.nutritionix.com/v2/natural/nutrients';
   
   // Alternative free APIs
