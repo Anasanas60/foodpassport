@@ -198,7 +198,7 @@ class FoodJournalService {
   Map<String, dynamic> _deserializeFoodEntry(Map<String, dynamic> entry) {
     return {
       'id': entry['id'],
-      'foodName': entry['food_name'],
+      'foodName': entry['food_name'], // Fixed: was looking for 'foodName' but should be 'food_name'
       'calories': entry['calories'],
       'protein': entry['protein'],
       'carbs': entry['carbs'],
