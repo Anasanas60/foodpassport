@@ -3,7 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart'; // ✅ NOW THIS WILL WORK
+import 'package:provider/provider.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -43,7 +43,7 @@ class FoodPassportApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider( // ✅ NOW THIS WILL WORK
+    return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => UserProfileService()..loadUserProfile()),
       ],
@@ -51,7 +51,13 @@ class FoodPassportApp extends StatelessWidget {
         title: 'FoodPassport',
         theme: ThemeData(
           useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF1a237e), // Passport navy blue
+            primary: const Color(0xFF1a237e),
+            secondary: const Color(0xFFffd700), // Gold accent
+            background: const Color(0xFFf8f5f0), // Vintage paper color
+          ),
+          fontFamily: 'Inter',
         ),
         home: const MainNavigationScreen(),
         onGenerateRoute: (settings) {
@@ -91,7 +97,7 @@ class FoodPassportApp extends StatelessWidget {
   }
 }
 
-// Main Navigation Screen with Bottom Navigation Bar
+// Enhanced Main Navigation Screen with Travel Passport Theme
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
 
@@ -110,77 +116,152 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     const PassportStampsScreen(), // Stamps & achievements
   ];
 
-  final List<String> _screenTitles = [
-    'FoodPassport',
-    'Food Journal',
-    'Food Map',
-    'My Stamps',
+  final List<Map<String, dynamic>> _screenThemes = [
+    {
+      'title': 'FoodPassport',
+      'icon': Icons.camera_alt,
+      'stamp': '🛂',
+      'color': Color(0xFF1a237e),
+    },
+    {
+      'title': 'Food Journal',
+      'icon': Icons.restaurant_menu,
+      'stamp': '📖',
+      'color': Color(0xFF8b0000),
+    },
+    {
+      'title': 'Food Map',
+      'icon': Icons.map,
+      'stamp': '🗺️',
+      'color': Color(0xFF2e7d32),
+    },
+    {
+      'title': 'My Stamps',
+      'icon': Icons.star,
+      'stamp': '⭐',
+      'color': Color(0xFFff6f00),
+    },
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_screenTitles[_currentIndex]),
-        backgroundColor: Colors.deepOrange,
-        actions: _currentIndex == 0 ? _buildHomeActions() : null,
-      ),
+      appBar: _buildPassportAppBar(),
       body: _screens[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: Colors.deepOrange,
-        unselectedItemColor: Colors.grey[600],
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.camera_alt),
-            label: 'Scan',
+      bottomNavigationBar: _buildPassportNavigationBar(),
+      floatingActionButton: _currentIndex == 0 ? _buildPassportFAB() : null,
+    );
+  }
+
+  AppBar _buildPassportAppBar() {
+    return AppBar(
+      title: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Color(0xFFffd700), width: 2),
+            ),
+            child: Text(
+              '🛂',
+              style: TextStyle(fontSize: 20),
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.restaurant_menu),
-            label: 'Journal',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map),
-            label: 'Map',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.star),
-            label: 'Stamps',
+          SizedBox(width: 12),
+          Text(
+            _screenThemes[_currentIndex]['title'],
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              letterSpacing: 1,
+            ),
           ),
         ],
       ),
-      floatingActionButton: _currentIndex == 0 ? _buildScanFAB() : null,
+      backgroundColor: _screenThemes[_currentIndex]['color'],
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          bottom: Radius.circular(20),
+        ),
+      ),
+      actions: _currentIndex == 0 ? _buildHomeActions() : null,
     );
   }
 
   List<Widget> _buildHomeActions() {
     return [
       IconButton(
-        icon: const Icon(Icons.person),
+        icon: Icon(Icons.person, color: Colors.white),
         onPressed: () => Navigator.push(context, SlideRightRoute(page: const UserFormScreen())),
-        tooltip: 'User Info',
+        tooltip: 'Traveler Profile',
       ),
       IconButton(
-        icon: const Icon(Icons.settings),
+        icon: Icon(Icons.settings, color: Colors.white),
         onPressed: () => Navigator.push(context, SlideRightRoute(page: const PreferencesScreen())),
-        tooltip: 'Settings',
+        tooltip: 'Passport Settings',
       ),
     ];
   }
 
-  Widget _buildScanFAB() {
+  Widget _buildPassportNavigationBar() {
+    return Container(
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: Offset(0, -2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white,
+          selectedItemColor: _screenThemes[_currentIndex]['color'],
+          unselectedItemColor: Colors.grey[600],
+          selectedLabelStyle: TextStyle(fontWeight: FontWeight.bold),
+          items: _screenThemes.map((theme) {
+            return BottomNavigationBarItem(
+              icon: Container(
+                padding: EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: _currentIndex == _screenThemes.indexOf(theme) 
+                      ? theme['color'].withOpacity(0.1) 
+                      : Colors.transparent,
+                ),
+                child: Icon(theme['icon']),
+              ),
+              label: theme['title'].toString().replaceAll('FoodPassport', 'Scanner'),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPassportFAB() {
     return FloatingActionButton(
       onPressed: () => Navigator.push(context, SlideUpRoute(page: const MenuScanScreen())),
-      backgroundColor: Colors.deepOrange,
-      child: const Icon(Icons.camera_alt, color: Colors.white),
+      backgroundColor: Color(0xFF1a237e),
+      foregroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Color(0xFFffd700), width: 2),
+      ),
+      child: const Icon(Icons.camera_alt),
     );
   }
 }
 
-// Home Content Screen (your existing home page content)
+// ENHANCED Home Content Screen with Passport Theme (Preserving All Functionality)
 class HomeContentScreen extends StatefulWidget {
   const HomeContentScreen({super.key});
 
@@ -215,7 +296,6 @@ class _HomeContentScreenState extends State<HomeContentScreen> {
     final userAllergies = _userAllergies;
     if (userAllergies.isEmpty) return false;
     
-    // Check if any detected allergen matches user's allergies
     for (final detectedAllergen in detectedAllergens) {
       for (final userAllergy in userAllergies) {
         if (detectedAllergen.toLowerCase().contains(userAllergy.toLowerCase())) {
@@ -226,27 +306,29 @@ class _HomeContentScreenState extends State<HomeContentScreen> {
     return false;
   }
 
-  // Test Advanced AI System
+  // Test Advanced AI System - ENHANCED WITH PASSPORT THEME
   Future<void> _testAdvancedAI() async {
     print('🧪 Testing Advanced AI System...');
     
     try {
-      // Create a mock XFile for testing
       final foodData = await AdvancedFoodRecognition.detectFood(
         XFile('test'), 
-        userLocation: _userLocation // ✅ Use shared user location
+        userLocation: _userLocation
       );
       
       print('✅ AI Detection Successful!');
-      print('🍜 Dish: ${foodData['dishName']}');
-      print('🎯 Confidence: ${(foodData['confidence'] * 100).toStringAsFixed(1)}%');
-      print('📋 Ingredients: ${foodData['ingredients'].length} items');
-      print('⚠️ Allergens: ${foodData['allergens']}');
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✅ Advanced AI Working! Detected: ${foodData['dishName']}'),
+            content: Row(
+              children: [
+                Icon(Icons.verified, color: Colors.white),
+                SizedBox(width: 8),
+                Text('✅ Advanced AI Working! Detected: ${foodData['dishName']}'),
+              ],
+            ),
+            backgroundColor: Color(0xFF1a237e),
             duration: const Duration(seconds: 3),
           ),
         );
@@ -255,7 +337,10 @@ class _HomeContentScreenState extends State<HomeContentScreen> {
       print('❌ Advanced AI Test Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ AI Error: ${e.toString()}')),
+          SnackBar(
+            content: Text('❌ AI Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -291,13 +376,16 @@ class _HomeContentScreenState extends State<HomeContentScreen> {
       print('Image picker error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
   }
 
-  // Advanced AI Food Detection
+  // Advanced AI Food Detection - ENHANCED WITH PASSPORT THEME
   void _analyzeFoodWithAI() async {
     setState(() {
       isAnalyzing = true;
@@ -307,10 +395,9 @@ class _HomeContentScreenState extends State<HomeContentScreen> {
     });
 
     try {
-      // ADVANCED AI FOOD DETECTION
       final foodData = await AdvancedFoodRecognition.detectFood(
         selectedImage!, 
-        userLocation: _userLocation // ✅ Use shared user location
+        userLocation: _userLocation
       );
       
       final String detectedDish = foodData['dishName'];
@@ -318,7 +405,6 @@ class _HomeContentScreenState extends State<HomeContentScreen> {
       final List<String> allergens = List<String>.from(foodData['allergens']);
       final double confidence = foodData['confidence'];
       
-      // ✅ Check against user's actual allergies from profile service
       bool warning = _checkAllergyWarning(allergens);
       
       if (mounted) {
@@ -330,13 +416,7 @@ class _HomeContentScreenState extends State<HomeContentScreen> {
         });
       }
       
-      // Log AI confidence level
       print('🎯 AI Detection Confidence: ${(confidence * 100).toStringAsFixed(1)}%');
-      print('🍜 Detected Dish: $detectedDish');
-      print('📋 Ingredients: $ingredients');
-      print('⚠️ Allergens: $allergens');
-      print('👤 User Allergies: $_userAllergies');
-      print('🚨 Allergy Warning: $warning');
       
     } catch (e) {
       print('Advanced food analysis error: $e');
@@ -397,225 +477,438 @@ class _HomeContentScreenState extends State<HomeContentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.restaurant_menu, size: 80, color: Colors.deepOrange),
-            const SizedBox(height: 20),
-            const Text(
-              'FoodPassport AI',
-              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            
-            // ✅ Display user name from shared profile service
-            Consumer<UserProfileService>(
-              builder: (context, profileService, child) {
-                return Text(
-                  'Welcome, ${profileService.name ?? "Guest"}!',
-                  style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                );
-              },
-            ),
-            
-            const SizedBox(height: 20),
-
-            // Advanced AI Test Button
-            ElevatedButton(
-              onPressed: _testAdvancedAI,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              ),
-              child: const Text('🧠 Test Advanced AI', style: TextStyle(fontSize: 16)),
-            ),
-            const SizedBox(height: 10),
-
-            if (selectedImage != null) ...[
-              Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey, width: 2),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: _buildImagePreview(),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                pickedFrom ?? '',
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
-              ),
-              const SizedBox(height: 20),
-            ],
-
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFFf8f5f0),
+            Color(0xFFe8e5e0),
+          ],
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Center(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                ElevatedButton.icon(
-                  onPressed: () => Navigator.push(context, SlideUpRoute(page: const MenuScanScreen())),
-                  icon: const Icon(Icons.menu_book, size: 20),
-                  label: const Text('Scan Menu'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                // PASSPORT-STYLE HEADER
+                Consumer<UserProfileService>(
+                  builder: (context, profileService, child) {
+                    return Container(
+                      padding: EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Color(0xFFffd700), width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Color(0xFF1a237e),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Color(0xFFffd700), width: 2),
+                            ),
+                            child: Icon(Icons.airplane_ticket, color: Colors.white, size: 30),
+                          ),
+                          SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'FOOD PASSPORT',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF1a237e),
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Welcome, ${profileService.name ?? "Explorer"}!',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  '📍 ${_userLocation} • ⚠️ ${_userAllergies.length} allergies',
+                                  style: TextStyle(
+                                    color: Colors.grey[500],
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                
+                const SizedBox(height: 30),
+
+                // MAIN SCANNER CARD WITH PASSPORT STYLING
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(color: Color(0xFFffd700), width: 1),
+                  ),
+                  child: Container(
+                    padding: EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Colors.white, Color(0xFFf8f5f0)],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Column(
+                      children: [
+                        // SCANNER ICON
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: Color(0xFF1a237e),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Color(0xFFffd700), width: 3),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0xFF1a237e).withOpacity(0.3),
+                                blurRadius: 10,
+                                offset: Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: Icon(Icons.camera_alt, size: 40, color: Colors.white),
+                        ),
+                        
+                        const SizedBox(height: 20),
+                        
+                        const Text(
+                          'FOOD SCANNER AI',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1a237e),
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 8),
+                        
+                        Text(
+                          'Advanced AI food recognition for travelers',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        
+                        const SizedBox(height: 24),
+
+                        // AI TEST BUTTON
+                        Container(
+                          width: double.infinity,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Color(0xFF1a237e), Color(0xFF283593)],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0xFF1a237e).withOpacity(0.3),
+                                blurRadius: 10,
+                                offset: Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton(
+                            onPressed: _testAdvancedAI,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.psychology, color: Colors.white),
+                                SizedBox(width: 8),
+                                Text(
+                                  'TEST ADVANCED AI',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 20),
+
+                        // IMAGE PREVIEW AREA
+                        if (selectedImage != null) ...[
+                          Container(
+                            width: 200,
+                            height: 200,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey, width: 2),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: _buildImagePreview(),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            pickedFrom ?? '',
+                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+
+                        // SCAN BUTTONS
+                        if (!isAnalyzing && resultDish == null) ...[
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [Color(0xFF8b0000), Color(0xFFc62828)],
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: ElevatedButton.icon(
+                                    onPressed: () => _pickImage(ImageSource.camera),
+                                    icon: Icon(Icons.camera_alt, color: Colors.white),
+                                    label: Text('Take Photo', style: TextStyle(color: Colors.white)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Container(
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Color(0xFF1a237e)),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: ElevatedButton.icon(
+                                    onPressed: () => _pickImage(ImageSource.gallery),
+                                    icon: Icon(Icons.upload_file, color: Color(0xFF1a237e)),
+                                    label: Text('Upload', style: TextStyle(color: Color(0xFF1a237e))),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+
+                        // LOADING INDICATOR
+                        if (isAnalyzing) ...[
+                          const SizedBox(height: 20),
+                          Column(
+                            children: [
+                              CircularProgressIndicator(color: Color(0xFF1a237e)),
+                              const SizedBox(height: 16),
+                              Text(
+                                '🧠 Advanced AI Analyzing...',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Using multi-API intelligence',
+                                style: TextStyle(fontSize: 14, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ],
+
+                        // RESULTS DISPLAY
+                        if (resultDish != null && !isAnalyzing) ...[
+                          const SizedBox(height: 20),
+                          Container(
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: hasAllergyWarning ? Colors.red[50] : Colors.green[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: hasAllergyWarning ? Colors.red : Colors.green,
+                                width: 2,
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                Text(
+                                  '🎉 AI Identified: $resultDish',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: hasAllergyWarning ? Colors.red : Colors.green,
+                                  ),
+                                ),
+                                if (currentFoodData?['confidence'] != null) ...[
+                                  SizedBox(height: 8),
+                                  Text(
+                                    '🎯 Confidence: ${(currentFoodData!['confidence'] * 100).toStringAsFixed(1)}%',
+                                    style: TextStyle(color: Colors.grey[600]),
+                                  ),
+                                ],
+                                if (hasAllergyWarning) ...[
+                                  SizedBox(height: 12),
+                                  Container(
+                                    padding: EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red[100],
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      '⚠️ WARNING: Contains ingredients you avoid!',
+                                      style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                ],
+                                SizedBox(height: 16),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    ElevatedButton(
+                                      onPressed: _navigateToRecipeScreen,
+                                      child: Text('👩‍🍳 Recipe & Ingredients'),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: _navigateToCulturalScreen,
+                                      child: Text('🌏 Culture & Origin'),
+                                    ),
+                                    if (hasAllergyWarning)
+                                      ElevatedButton(
+                                        onPressed: () => Navigator.push(context, FadeRoute(page: const EmergencyAlertScreen())),
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                        child: Text('🚨 EMERGENCY ALERT'),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ),
-                ElevatedButton.icon(
-                  onPressed: () {}, // Map is in bottom nav now
-                  icon: const Icon(Icons.map, size: 20),
-                  label: const Text('My Food Map'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+
+                const SizedBox(height: 24),
+
+                // QUICK ACTIONS WITH PASSPORT STYLING
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    _buildPassportActionButton(
+                      'Scan Menu',
+                      Icons.menu_book,
+                      Color(0xFF1a237e),
+                      () => Navigator.push(context, SlideUpRoute(page: const MenuScanScreen())),
+                    ),
+                    _buildPassportActionButton(
+                      'My Food Map',
+                      Icons.map,
+                      Color(0xFF2e7d32),
+                      () {}, // Map is in bottom nav
+                    ),
+                    _buildPassportActionButton(
+                      'Food Journal',
+                      Icons.collections_bookmark,
+                      Color(0xFF8b0000),
+                      () {}, // Journal is in bottom nav
+                    ),
+                    _buildPassportActionButton(
+                      'My Stamps',
+                      Icons.star,
+                      Color(0xFFff6f00),
+                      () {}, // Stamps is in bottom nav
+                    ),
+                  ],
                 ),
-                ElevatedButton.icon(
-                  onPressed: () {}, // Journal is in bottom nav now
-                  icon: const Icon(Icons.collections_bookmark, size: 20),
-                  label: const Text('Food Journal'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () {}, // Stamps is in bottom nav now
-                  icon: const Icon(Icons.star, size: 20),
-                  label: const Text('My Stamps'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    backgroundColor: Colors.amber[700],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPassportActionButton(String text, IconData icon, Color color, VoidCallback onPressed) {
+    return Container(
+      width: 120,
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: color.withOpacity(0.3)),
+        ),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: EdgeInsets.all(12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 24, color: color),
+                SizedBox(height: 8),
+                Text(
+                  text,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: color,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 30),
-
-            if (!isAnalyzing && resultDish == null) ...[
-              ElevatedButton.icon(
-                onPressed: () => _pickImage(ImageSource.camera),
-                icon: const Icon(Icons.camera_alt),
-                label: const Text('Take Photo', style: TextStyle(fontSize: 18)),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: () => _pickImage(ImageSource.gallery),
-                icon: const Icon(Icons.upload_file),
-                label: const Text('Upload Photo', style: TextStyle(fontSize: 18)),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ],
-
-            if (isAnalyzing) ...[
-              const CircularProgressIndicator(color: Colors.deepOrange),
-              const SizedBox(height: 20),
-              const Text(
-                '🧠 Advanced AI Analyzing...',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Using multi-API intelligence',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-            ],
-
-            if (resultDish != null && !isAnalyzing) ...[
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '🎉 AI Identified: $resultDish',
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                      ),
-                      if (currentFoodData?['confidence'] != null) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          '🎯 Confidence: ${(currentFoodData!['confidence'] * 100).toStringAsFixed(1)}%',
-                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-                      if (hasAllergyWarning) ...[
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.red[50],
-                            border: Border.all(color: Colors.red, width: 2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            '⚠️ WARNING: Contains ingredients you avoid!',
-                            style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () => Navigator.push(context, FadeRoute(page: const EmergencyAlertScreen())),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                          child: const Text('🚨 EMERGENCY ALERT', style: TextStyle(fontWeight: FontWeight.bold)),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      Wrap(
-                        spacing: 12,
-                        children: [
-                          ElevatedButton(
-                            onPressed: _navigateToRecipeScreen,
-                            child: const Text('👩‍🍳 Recipe & Ingredients'),
-                          ),
-                          ElevatedButton(
-                            onPressed: _navigateToCulturalScreen,
-                            child: const Text('🌏 Culture & Origin'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () {}, // Stamps is in bottom nav now
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber[700]),
-                            child: const Text('🏆 View Stamps'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Center(
-                        child: TextButton(
-                          onPressed: () => setState(() {
-                            resultDish = null;
-                            hasAllergyWarning = false;
-                            selectedImage = null;
-                            webImageBytes = null;
-                            pickedFrom = null;
-                            currentFoodData = null;
-                          }),
-                          child: const Text('Try Another Dish →'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
