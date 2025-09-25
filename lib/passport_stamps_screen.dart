@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'services/food_journal_service.dart';
 import 'services/database_service.dart';
-import 'animations/shimmer_loading.dart'; // NEW
+import 'animations/shimmer_loading.dart';
 
 class PassportStampsScreen extends StatefulWidget {
   const PassportStampsScreen({super.key});
@@ -267,9 +267,17 @@ class _PassportStampsScreenState extends State<PassportStampsScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
-        return const ShimmerLoading(
+        return ShimmerLoading(
           isLoading: true,
-          child: ShimmerStampCard(), // Using our pre-built shimmer stamp card
+          child: Card(
+            child: Container(
+              height: 150,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: Colors.grey[300],
+              ),
+            ),
+          ),
         );
       },
     );
@@ -335,10 +343,12 @@ class _PassportStampsScreenState extends State<PassportStampsScreen> {
   }
 
   Widget _buildStampCard(Map<String, dynamic> stamp, bool isEarned) {
+    final stampColor = _getStampColor(stamp['category']);
+    
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: isEarned ? _getStampColor(stamp['category']) : Colors.grey[100],
+      color: isEarned ? stampColor : Colors.grey[100],
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
@@ -355,7 +365,7 @@ class _PassportStampsScreenState extends State<PassportStampsScreen> {
               child: Icon(
                 _getStampIcon(stamp['type'] ?? stamp['stamp_type']),
                 size: 30,
-                color: isEarned ? _getStampColor(stamp['category']) : Colors.grey[500],
+                color: isEarned ? stampColor : Colors.grey[500],
               ),
             ),
             const SizedBox(height: 8),
@@ -378,7 +388,9 @@ class _PassportStampsScreenState extends State<PassportStampsScreen> {
               Text(
                 stamp['description']?.toString() ?? '',
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
+                  color: isEarned 
+                      ? Color.alphaBlend(Colors.white.withAlpha(204), stampColor) // 80% opacity equivalent
+                      : Colors.grey[600]!,
                   fontSize: 10,
                 ),
                 textAlign: TextAlign.center,
@@ -402,7 +414,9 @@ class _PassportStampsScreenState extends State<PassportStampsScreen> {
               Text(
                 _formatDate(DateTime.fromMillisecondsSinceEpoch(stamp['earned_date'])),
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.6),
+                  color: isEarned 
+                      ? Color.alphaBlend(Colors.white.withAlpha(153), stampColor) // 60% opacity equivalent
+                      : Colors.grey[600]!,
                   fontSize: 9,
                 ),
               ),

@@ -1,14 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
-import 'services/database_service.dart';
-import 'animations/shimmer_loading.dart'; // NEW
+import 'services/food_journal_service.dart'; // Import the correct service
+import 'animations/shimmer_loading.dart';
 
-class FoodJournalService {
-  final DatabaseService _dbService = DatabaseService();
-
-  // ... (all your existing FoodJournalService methods remain exactly the same)
-  // KEEP ALL YOUR EXISTING CODE HERE
-}
+// REMOVED the duplicate FoodJournalService class - it's now imported from services/
 
 class FoodJournalScreen extends StatefulWidget {
   const FoodJournalScreen({super.key});
@@ -18,7 +12,7 @@ class FoodJournalScreen extends StatefulWidget {
 }
 
 class _FoodJournalScreenState extends State<FoodJournalScreen> {
-  final FoodJournalService _journalService = FoodJournalService();
+  final FoodJournalService _journalService = FoodJournalService(); // Now uses the correct service
   List<Map<String, dynamic>> _foodEntries = [];
   bool _isLoading = true;
   String _errorMessage = '';
@@ -198,9 +192,17 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
       ),
       itemCount: 6, // Show 6 shimmer cards
       itemBuilder: (context, index) {
-        return const ShimmerLoading(
+        return ShimmerLoading(
           isLoading: true,
-          child: ShimmerFoodCard(), // Using our pre-built shimmer card
+          child: Card(
+            child: Container(
+              height: 150,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: Colors.grey[300],
+              ),
+            ),
+          ),
         );
       },
     );

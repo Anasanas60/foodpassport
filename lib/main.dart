@@ -3,9 +3,13 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart'; // ✅ NOW THIS WILL WORK
 import 'dart:io';
 import 'dart:typed_data';
+
+// Import services
 import 'package:foodpassport/services/advanced_food_recognition.dart';
+import 'package:foodpassport/services/user_profile_service.dart';
 
 // Import all your screens
 import 'package:foodpassport/preferences_screen.dart';
@@ -39,29 +43,34 @@ class FoodPassportApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'FoodPassport',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+    return MultiProvider( // ✅ NOW THIS WILL WORK
+      providers: [
+        ChangeNotifierProvider(create: (context) => UserProfileService()..loadUserProfile()),
+      ],
+      child: MaterialApp(
+        title: 'FoodPassport',
+        theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+        ),
+        home: const MainNavigationScreen(),
+        onGenerateRoute: (settings) {
+          switch (settings.name) {
+            case '/journal':
+              return SlideUpRoute(page: const FoodJournalScreen());
+            case '/map':
+              return SlideRightRoute(page: const MapScreen());
+            case '/passport-stamps':
+              return ScaleRoute(page: const PassportStampsScreen());
+            case '/menuscan':
+              return SlideUpRoute(page: const MenuScanScreen());
+            case '/preferences':
+              return SlideRightRoute(page: const PreferencesScreen());
+            default:
+              return FadeRoute(page: _getPageForRoute(settings.name ?? '/'));
+          }
+        },
       ),
-      home: const MainNavigationScreen(), // NEW: Use navigation screen as home
-      onGenerateRoute: (settings) {
-        switch (settings.name) {
-          case '/journal':
-            return SlideUpRoute(page: const FoodJournalScreen());
-          case '/map':
-            return SlideRightRoute(page: const MapScreen());
-          case '/passport-stamps':
-            return ScaleRoute(page: const PassportStampsScreen());
-          case '/menuscan':
-            return SlideUpRoute(page: const MenuScanScreen());
-          case '/preferences':
-            return SlideRightRoute(page: const PreferencesScreen());
-          default:
-            return FadeRoute(page: _getPageForRoute(settings.name ?? '/'));
-        }
-      },
     );
   }
 
@@ -82,7 +91,7 @@ class FoodPassportApp extends StatelessWidget {
   }
 }
 
-// NEW: Main Navigation Screen with Bottom Navigation Bar
+// Main Navigation Screen with Bottom Navigation Bar
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
 
@@ -180,10 +189,6 @@ class HomeContentScreen extends StatefulWidget {
 }
 
 class _HomeContentScreenState extends State<HomeContentScreen> {
-  String userName = "Guest";
-  String userLanguage = "English";
-  int userAge = 25;
-  String userLocation = "Bangkok";
   bool isAnalyzing = false;
   String? resultDish;
   bool hasAllergyWarning = false;
@@ -192,12 +197,34 @@ class _HomeContentScreenState extends State<HomeContentScreen> {
   Uint8List? webImageBytes;
   Map<String, dynamic>? currentFoodData;
 
-  bool avoidNuts = false;
-  bool avoidDairy = false;
-  bool avoidGluten = false;
-  bool isVegan = false;
-
   final ImagePicker _picker = ImagePicker();
+
+  // ✅ Get user data from UserProfileService
+  String get _userLocation {
+    final profileService = Provider.of<UserProfileService>(context, listen: true);
+    return profileService.country ?? "Bangkok";
+  }
+
+  List<String> get _userAllergies {
+    final profileService = Provider.of<UserProfileService>(context, listen: true);
+    return profileService.allergies;
+  }
+
+  // ✅ Updated allergy check using UserProfileService
+  bool _checkAllergyWarning(List<String> detectedAllergens) {
+    final userAllergies = _userAllergies;
+    if (userAllergies.isEmpty) return false;
+    
+    // Check if any detected allergen matches user's allergies
+    for (final detectedAllergen in detectedAllergens) {
+      for (final userAllergy in userAllergies) {
+        if (detectedAllergen.toLowerCase().contains(userAllergy.toLowerCase())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
 
   // Test Advanced AI System
   Future<void> _testAdvancedAI() async {
@@ -207,7 +234,7 @@ class _HomeContentScreenState extends State<HomeContentScreen> {
       // Create a mock XFile for testing
       final foodData = await AdvancedFoodRecognition.detectFood(
         XFile('test'), 
-        userLocation: userLocation
+        userLocation: _userLocation // ✅ Use shared user location
       );
       
       print('✅ AI Detection Successful!');
@@ -283,7 +310,7 @@ class _HomeContentScreenState extends State<HomeContentScreen> {
       // ADVANCED AI FOOD DETECTION
       final foodData = await AdvancedFoodRecognition.detectFood(
         selectedImage!, 
-        userLocation: userLocation
+        userLocation: _userLocation // ✅ Use shared user location
       );
       
       final String detectedDish = foodData['dishName'];
@@ -291,7 +318,7 @@ class _HomeContentScreenState extends State<HomeContentScreen> {
       final List<String> allergens = List<String>.from(foodData['allergens']);
       final double confidence = foodData['confidence'];
       
-      // Check against user preferences
+      // ✅ Check against user's actual allergies from profile service
       bool warning = _checkAllergyWarning(allergens);
       
       if (mounted) {
@@ -308,6 +335,8 @@ class _HomeContentScreenState extends State<HomeContentScreen> {
       print('🍜 Detected Dish: $detectedDish');
       print('📋 Ingredients: $ingredients');
       print('⚠️ Allergens: $allergens');
+      print('👤 User Allergies: $_userAllergies');
+      print('🚨 Allergy Warning: $warning');
       
     } catch (e) {
       print('Advanced food analysis error: $e');
@@ -319,16 +348,6 @@ class _HomeContentScreenState extends State<HomeContentScreen> {
         });
       }
     }
-  }
-
-  bool _checkAllergyWarning(List<String> allergens) {
-    if (avoidNuts && allergens.any((allergen) => allergen.contains('nut'))) return true;
-    if (avoidDairy && allergens.any((allergen) => allergen.contains('dairy'))) return true;
-    if (avoidGluten && allergens.any((allergen) => allergen.contains('gluten'))) return true;
-    if (isVegan && allergens.any((allergen) => ['egg', 'dairy', 'fish', 'meat'].any((v) => allergen.contains(v)))) {
-      return true;
-    }
-    return false;
   }
 
   void _navigateToRecipeScreen() {
@@ -391,11 +410,17 @@ class _HomeContentScreenState extends State<HomeContentScreen> {
               style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            const Text(
-              'Advanced AI Food Recognition & Analysis',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-              textAlign: TextAlign.center,
+            
+            // ✅ Display user name from shared profile service
+            Consumer<UserProfileService>(
+              builder: (context, profileService, child) {
+                return Text(
+                  'Welcome, ${profileService.name ?? "Guest"}!',
+                  style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                );
+              },
             ),
+            
             const SizedBox(height: 20),
 
             // Advanced AI Test Button

@@ -33,7 +33,7 @@ class FoodJournalService {
       };
 
       await _dbService.insertFoodEntry(entry);
-      await _updateUserStats(calories);
+      await _updateUserStats(calories, foodName);
       await _checkForAchievements(foodName);
       
       print('✅ Food entry saved: $foodName');
@@ -55,18 +55,16 @@ class FoodJournalService {
 
   Future<List<Map<String, dynamic>>> getFoodEntriesByDate(DateTime date) async {
     try {
-      final startOfDay = DateTime(date.year, date.month, date.day).millisecondsSinceEpoch;
-      final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59).millisecondsSinceEpoch;
+      final startOfDay = DateTime(date.year, date.month, date.day);
+      final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
       
-      final db = await _dbService.database;
-      final entries = await db.query(
-        'food_entries',
-        where: 'timestamp BETWEEN ? AND ?',
-        whereArgs: [startOfDay, endOfDay],
-        orderBy: 'timestamp DESC',
-      );
+      final entries = await _dbService.getFoodEntries();
       
-      return entries.map((entry) => _deserializeFoodEntry(entry)).toList();
+      // Filter entries by date manually since we don't have direct DB query access
+      return entries.where((entry) {
+        final entryDate = DateTime.fromMillisecondsSinceEpoch(entry['timestamp']);
+        return entryDate.isAfter(startOfDay) && entryDate.isBefore(endOfDay);
+      }).map((entry) => _deserializeFoodEntry(entry)).toList();
     } catch (e) {
       print('❌ Error fetching entries by date: $e');
       return [];
@@ -85,22 +83,37 @@ class FoodJournalService {
 
   Future<Map<String, dynamic>> getNutritionSummary({int days = 7}) async {
     try {
-      final cutoffTime = DateTime.now().subtract(Duration(days: days)).millisecondsSinceEpoch;
+      final cutoffTime = DateTime.now().subtract(Duration(days: days));
+      final entries = await getFoodEntries();
       
-      final db = await _dbService.database;
-      final result = await db.rawQuery('''
-        SELECT 
-          COUNT(*) as total_entries,
-          SUM(calories) as total_calories,
-          AVG(calories) as avg_calories,
-          SUM(protein) as total_protein,
-          SUM(carbs) as total_carbs,
-          SUM(fat) as total_fat
-        FROM food_entries 
-        WHERE timestamp > ?
-      ''', [cutoffTime]);
+      final recentEntries = entries.where((entry) {
+        return entry['timestamp'].isAfter(cutoffTime);
+      }).toList();
 
-      return result.isNotEmpty ? result.first : {};
+      if (recentEntries.isEmpty) {
+        return {
+          'total_entries': 0,
+          'total_calories': 0,
+          'avg_calories': 0,
+          'total_protein': 0,
+          'total_carbs': 0,
+          'total_fat': 0,
+        };
+      }
+
+      final totalCalories = recentEntries.fold<double>(0, (sum, entry) => sum + (entry['calories'] ?? 0));
+      final totalProtein = recentEntries.fold<double>(0, (sum, entry) => sum + (entry['protein'] ?? 0));
+      final totalCarbs = recentEntries.fold<double>(0, (sum, entry) => sum + (entry['carbs'] ?? 0));
+      final totalFat = recentEntries.fold<double>(0, (sum, entry) => sum + (entry['fat'] ?? 0));
+
+      return {
+        'total_entries': recentEntries.length,
+        'total_calories': totalCalories,
+        'avg_calories': totalCalories / recentEntries.length,
+        'total_protein': totalProtein,
+        'total_carbs': totalCarbs,
+        'total_fat': totalFat,
+      };
     } catch (e) {
       print('❌ Error getting nutrition summary: $e');
       return {};
@@ -113,7 +126,7 @@ class FoodJournalService {
     return 'Lat: ${position.latitude.toStringAsFixed(4)}, Lng: ${position.longitude.toStringAsFixed(4)}';
   }
 
-  Future<void> _updateUserStats(double calories) async {
+  Future<void> _updateUserStats(double calories, String foodName) async {
     try {
       final currentStats = await _dbService.getUserStats() ?? {};
       final now = DateTime.now();
@@ -124,7 +137,7 @@ class FoodJournalService {
       int currentStreak = currentStats['current_streak'] ?? 0;
       if (lastEntryDate != null && _isConsecutiveDay(lastEntryDate, now)) {
         currentStreak++;
-      } else {
+      } else if (lastEntryDate == null || !_isSameDay(lastEntryDate, now)) {
         currentStreak = 1;
       }
 
@@ -145,8 +158,16 @@ class FoodJournalService {
   }
 
   bool _isConsecutiveDay(DateTime previous, DateTime current) {
-    final difference = current.difference(previous).inDays;
+    final previousDay = DateTime(previous.year, previous.month, previous.day);
+    final currentDay = DateTime(current.year, current.month, current.day);
+    final difference = currentDay.difference(previousDay).inDays;
     return difference == 1;
+  }
+
+  bool _isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year && 
+           date1.month == date2.month && 
+           date1.day == date2.day;
   }
 
   Future<void> _checkForAchievements(String foodName) async {
@@ -162,13 +183,26 @@ class FoodJournalService {
       );
     }
     
-    final uniqueFoods = entries.map((e) => e['foodName'].toString().toLowerCase()).toSet();
+    final uniqueFoods = entries.map((e) => e['foodName']?.toString().toLowerCase() ?? '').toSet();
     if (uniqueFoods.length >= 5) {
       await _awardPassportStamp(
         type: 'food_explorer',
         title: 'Food Explorer',
         description: 'Tried 5 different foods',
         category: 'variety',
+      );
+    }
+
+    // Check for streak achievements
+    final currentStats = await _dbService.getUserStats() ?? {};
+    final currentStreak = currentStats['current_streak'] ?? 0;
+    
+    if (currentStreak >= 7) {
+      await _awardPassportStamp(
+        type: 'weekly_streak',
+        title: 'Weekly Streak!',
+        description: 'Logged food for 7 consecutive days',
+        category: 'consistency',
       );
     }
   }
@@ -180,16 +214,22 @@ class FoodJournalService {
     required String category,
   }) async {
     try {
-      final stamp = {
-        'stamp_type': type,
-        'title': title,
-        'description': description,
-        'icon_name': 'stamp_$type',
-        'earned_date': DateTime.now().millisecondsSinceEpoch,
-        'category': category,
-      };
-      await _dbService.addPassportStamp(stamp);
-      print('🎉 Passport stamp awarded: $title');
+      // Check if stamp already exists to avoid duplicates
+      final existingStamps = await _dbService.getPassportStamps();
+      final alreadyAwarded = existingStamps.any((stamp) => stamp['stamp_type'] == type);
+      
+      if (!alreadyAwarded) {
+        final stamp = {
+          'stamp_type': type,
+          'title': title,
+          'description': description,
+          'icon_name': 'stamp_$type',
+          'earned_date': DateTime.now().millisecondsSinceEpoch,
+          'category': category,
+        };
+        await _dbService.addPassportStamp(stamp);
+        print('🎉 Passport stamp awarded: $title');
+      }
     } catch (e) {
       print('❌ Error awarding passport stamp: $e');
     }
@@ -198,22 +238,51 @@ class FoodJournalService {
   Map<String, dynamic> _deserializeFoodEntry(Map<String, dynamic> entry) {
     return {
       'id': entry['id'],
-      'foodName': entry['food_name'], // Fixed: was looking for 'foodName' but should be 'food_name'
-      'calories': entry['calories'],
-      'protein': entry['protein'],
-      'carbs': entry['carbs'],
-      'fat': entry['fat'],
+      'foodName': entry['food_name'],
+      'calories': (entry['calories'] as num).toDouble(),
+      'protein': (entry['protein'] as num).toDouble(),
+      'carbs': (entry['carbs'] as num).toDouble(),
+      'fat': (entry['fat'] as num).toDouble(),
       'imagePath': entry['image_path'],
       'location': entry['latitude'] != null && entry['longitude'] != null
           ? {
-              'latitude': entry['latitude'],
-              'longitude': entry['longitude'],
+              'latitude': (entry['latitude'] as num).toDouble(),
+              'longitude': (entry['longitude'] as num).toDouble(),
               'address': entry['address'],
             }
           : null,
       'timestamp': DateTime.fromMillisecondsSinceEpoch(entry['timestamp']),
-      'confidenceScore': entry['confidence_score'],
-      'source': entry['source'],
+      'confidenceScore': (entry['confidence_score'] as num?)?.toDouble() ?? 0.8,
+      'source': entry['source'] ?? 'nutritionix',
     };
+  }
+
+  // Additional utility methods
+  Future<List<Map<String, dynamic>>> getPassportStamps() async {
+    try {
+      return await _dbService.getPassportStamps();
+    } catch (e) {
+      print('❌ Error fetching passport stamps: $e');
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>?> getUserStats() async {
+    try {
+      return await _dbService.getUserStats();
+    } catch (e) {
+      print('❌ Error fetching user stats: $e');
+      return null;
+    }
+  }
+
+  Future<void> resetUserData() async {
+    try {
+      await _dbService.resetDatabase();
+      print('✅ User data reset successfully');
+    } catch (e) {
+      print('❌ Error resetting user data: $e');
+      throw Exception('Failed to reset user data: $e');
+    }
   }
 }
