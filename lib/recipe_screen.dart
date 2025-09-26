@@ -1,7 +1,6 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'services/food_state_service.dart';
-import 'services/food_recognition_service.dart';
 import 'services/recipe_service.dart'; // NEW: AI Recipe Service
 import 'models/food_item.dart';
 import 'models/recipe_data.dart'; // NEW: Recipe Data Model

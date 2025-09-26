@@ -1,15 +1,16 @@
 import 'package:flutter/foundation.dart';
 import '../models/food_item.dart';
-import '../models/user_profile.dart';
 
 class FoodStateService with ChangeNotifier {
-  FoodItem? _currentFoodItem;
   List<FoodItem> _foodHistory = [];
-  UserProfile? _userProfile;
+  FoodItem? _currentFoodItem;
+  bool _hasAllergyRisk = false;
+  dynamic _userProfile;
 
-  FoodItem? get currentFoodItem => _currentFoodItem;
   List<FoodItem> get foodHistory => _foodHistory;
-  UserProfile? get userProfile => _userProfile;
+  FoodItem? get currentFoodItem => _currentFoodItem;
+  bool get hasAllergyRisk => _hasAllergyRisk;
+  dynamic get userProfile => _userProfile;
 
   void setCurrentFood(FoodItem foodItem) {
     _currentFoodItem = foodItem;
@@ -21,25 +22,25 @@ class FoodStateService with ChangeNotifier {
     notifyListeners();
   }
 
-  void setUserProfile(UserProfile profile) {
-    _userProfile = profile;
+  void removeFromHistory(int index) {
+    if (index >= 0 && index < _foodHistory.length) {
+      _foodHistory.removeAt(index);
+      notifyListeners();
+    }
+  }
+
+  void clearHistory() {
+    _foodHistory.clear();
     notifyListeners();
   }
 
-  // Check if current food has user's allergens
-  bool get hasAllergyRisk {
-    if (_currentFoodItem == null || _userProfile == null) return false;
-    return _currentFoodItem!.containsAllergens(_userProfile!.allergies);
+  void setAllergyRisk(bool risk) {
+    _hasAllergyRisk = risk;
+    notifyListeners();
   }
 
-  // Get high-risk allergens for emergency screen
-  List<String> get emergencyAllergens {
-    if (_currentFoodItem == null || _userProfile == null) return [];
-    return _currentFoodItem!.getHighRiskAllergens(_userProfile!.allergies);
-  }
-
-  void clearCurrentFood() {
-    _currentFoodItem = null;
+  void setUserProfile(dynamic profile) {
+    _userProfile = profile;
     notifyListeners();
   }
 }
