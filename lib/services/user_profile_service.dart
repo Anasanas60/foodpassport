@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
-import 'database_service.dart'; // ✅ ADD THIS IMPORT
+import 'database_service.dart';
+import '../models/user_profile.dart'; // Import the UserProfile model
 
 class UserProfileService with ChangeNotifier {
   final DatabaseService _dbService = DatabaseService();
@@ -19,6 +20,20 @@ class UserProfileService with ChangeNotifier {
   String? get dietaryPreference => _dietaryPreference;
   String? get country => _country;
   String? get language => _language;
+
+  // NEW: Getter that returns a complete UserProfile object
+  UserProfile? get userProfile {
+    if (_name == null && _age == null) return null;
+    
+    return UserProfile(
+      name: _name,
+      age: _age,
+      allergies: _allergies,
+      dietaryPreference: _dietaryPreference,
+      country: _country,
+      language: _language,
+    );
+  }
 
   // Load user profile from database
   Future<void> loadUserProfile() async {
@@ -85,6 +100,24 @@ class UserProfileService with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updateDietaryPreference(String preference) async {
+    _dietaryPreference = preference;
+    await _saveToDatabase();
+    notifyListeners();
+  }
+
+  Future<void> updateCountry(String country) async {
+    _country = country;
+    await _saveToDatabase();
+    notifyListeners();
+  }
+
+  Future<void> updateLanguage(String language) async {
+    _language = language;
+    await _saveToDatabase();
+    notifyListeners();
+  }
+
   // Save to database
   Future<void> _saveToDatabase() async {
     try {
@@ -133,5 +166,40 @@ class UserProfileService with ChangeNotifier {
       'country': _country ?? 'Not set',
       'language': _language ?? 'Not set',
     };
+  }
+
+  // NEW: Check if food contains user's allergens
+  bool containsAllergens(List<String> foodAllergens) {
+    if (_allergies.isEmpty || foodAllergens.isEmpty) return false;
+    return foodAllergens.any((allergen) => _allergies.contains(allergen));
+  }
+
+  // NEW: Get matching allergens between user and food
+  List<String> getMatchingAllergens(List<String> foodAllergens) {
+    return foodAllergens.where((allergen) => _allergies.contains(allergen)).toList();
+  }
+
+  // NEW: Initialize with default values for testing
+  void initializeWithDefaults() {
+    _name = 'Food Explorer';
+    _age = 25;
+    _allergies = ['nuts', 'shellfish'];
+    _dietaryPreference = 'Vegetarian';
+    _country = 'Thailand';
+    _language = 'English';
+    notifyListeners();
+  }
+
+  // NEW: Check if user profile is empty
+  bool get isEmpty {
+    return _name == null && _age == null && _allergies.isEmpty;
+  }
+
+  // NEW: Get user initials for avatar
+  String get initials {
+    if (_name == null || _name!.isEmpty) return 'FP';
+    final names = _name!.split(' ');
+    if (names.length == 1) return _name!.substring(0, 2).toUpperCase();
+    return '${names[0][0]}${names[names.length - 1][0]}'.toUpperCase();
   }
 }

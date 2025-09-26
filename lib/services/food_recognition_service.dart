@@ -2,11 +2,14 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
+import '../models/food_item.dart';
+import '../utils/allergen_checker.dart';
 import 'food_journal_service.dart';
+import 'ocr_service.dart'; // Integrate with your existing OCR service
 
 class FoodRecognitionService {
   // Nutritionix API - Free tier (100 requests/day)
-  static const String apiKey = '1c7ff5c00fbfe73f21235865e5cf6d16'; // You'll need to get this
+  static const String apiKey = '1c7ff5c00fbfe73f21235865e5cf6d16';
   static const String appId = 'e9ec091f';
   static const String baseUrl = 'https://trackapi.nutritionix.com/v2/natural/nutrients';
   
@@ -16,45 +19,63 @@ class FoodRecognitionService {
   
   static final FoodJournalService _journalService = FoodJournalService();
 
-  // Main method: Detect food and save to database
-  static Future<Map<String, dynamic>> recognizeAndSaveFood(
+  // ENHANCED MAIN METHOD: Returns FoodItem object with allergen detection
+  static Future<FoodItem> recognizeAndAnalyzeFood(
     XFile image, {
     Position? currentPosition,
     String userTextDescription = '',
+    List<String> userAllergies = const [], // Add user allergies parameter
   }) async {
     try {
-      // Step 1: Try Nutritionix API first (most accurate)
-      final nutritionixResult = await _tryNutritionixRecognition(userTextDescription.isEmpty 
+      final String foodDescription = userTextDescription.isEmpty 
           ? await _extractTextFromImage(image) 
-          : userTextDescription
+          : userTextDescription;
+
+      Map<String, dynamic> recognitionResult;
+      String source;
+
+      // Step 1: Try Nutritionix API first (most accurate)
+      recognitionResult = await _tryNutritionixRecognition(foodDescription) 
+          ?? await _tryMealDbRecognition(foodDescription) 
+          ?? await _fallbackFoodDetection(foodDescription);
+      
+      source = recognitionResult['source'] ?? 'unknown';
+
+      // Step 2: Detect allergens based on the recognition result
+      final detectedAllergens = AllergenChecker.detectAllergens(
+        foodName: recognitionResult['foodName'],
+        description: foodDescription,
+        cuisineType: recognitionResult['area'],
       );
-      
-      if (nutritionixResult != null) {
-        await _saveFoodEntry(nutritionixResult, currentPosition, source: 'nutritionix');
-        return nutritionixResult;
-      }
-      
-      // Step 2: Fallback to TheMealDB
-      final mealDbResult = await _tryMealDbRecognition(userTextDescription);
-      if (mealDbResult != null) {
-        await _saveFoodEntry(mealDbResult, currentPosition, source: 'mealdb');
-        return mealDbResult;
-      }
-      
-      // Step 3: Final fallback to basic detection
-      final fallbackResult = await _fallbackFoodDetection();
-      await _saveFoodEntry(fallbackResult, currentPosition, source: 'fallback');
-      return fallbackResult;
+
+      // Step 3: Create FoodItem object
+      final foodItem = FoodItem.fromRecognitionMap(
+        {
+          ...recognitionResult,
+          'detectedAllergens': detectedAllergens,
+          'source': source,
+        },
+        imagePath: image.path,
+        position: currentPosition,
+      );
+
+      // Step 4: Save to journal
+      await _saveFoodEntry(foodItem);
+
+      return foodItem;
       
     } catch (e) {
       print('❌ Food recognition error: $e');
-      final fallbackResult = await _fallbackFoodDetection();
-      await _saveFoodEntry(fallbackResult, currentPosition, source: 'error_fallback');
-      return fallbackResult;
+      // Return a fallback FoodItem with error info
+      return FoodItem.fromRecognitionMap(
+        await _fallbackFoodDetection('Emergency fallback'),
+        imagePath: image.path,
+        position: currentPosition,
+      );
     }
   }
 
-  // Nutritionix API integration
+  // ENHANCED NUTRITIONIX INTEGRATION
   static Future<Map<String, dynamic>?> _tryNutritionixRecognition(String foodDescription) async {
     if (foodDescription.isEmpty) return null;
     
@@ -76,7 +97,8 @@ class FoodRecognitionService {
         final data = jsonDecode(response.body);
         if (data['foods'] != null && data['foods'].isNotEmpty) {
           final food = data['foods'][0];
-          return _parseNutritionixData(food, foodDescription);
+          final result = _parseNutritionixData(food, foodDescription);
+          return {...result, 'source': 'nutritionix'};
         }
       }
       
@@ -97,11 +119,11 @@ class FoodRecognitionService {
       'fat': food['nf_total_fat']?.toDouble() ?? 0.0,
       'servingSize': food['serving_qty']?.toDouble(),
       'servingUnit': food['serving_unit'],
-      'confidence': 0.9, // High confidence for Nutritionix
+      'confidence': 0.9,
     };
   }
 
-  // TheMealDB fallback
+  // ENHANCED MEALDB INTEGRATION
   static Future<Map<String, dynamic>?> _tryMealDbRecognition(String description) async {
     if (description.isEmpty) return null;
     
@@ -113,7 +135,8 @@ class FoodRecognitionService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['meals'] != null && data['meals'].isNotEmpty) {
-          return _parseMealDbData(data['meals'][0], description);
+          final result = _parseMealDbData(data['meals'][0], description);
+          return {...result, 'source': 'mealdb'};
         }
       }
       return null;
@@ -124,7 +147,6 @@ class FoodRecognitionService {
   }
 
   static Map<String, dynamic> _parseMealDbData(Map<String, dynamic> meal, String description) {
-    // Estimate nutrition based on common values for the dish type
     final nutrition = _estimateNutritionFromDishType(description);
     
     return {
@@ -137,14 +159,14 @@ class FoodRecognitionService {
       'imageUrl': meal['strMealThumb'],
       'category': meal['strCategory'],
       'area': meal['strArea'],
-      'confidence': 0.7, // Medium confidence for MealDB
+      'confidence': 0.7,
     };
   }
 
-  // Final fallback
-  static Future<Map<String, dynamic>> _fallbackFoodDetection() async {
+  // ENHANCED FALLBACK DETECTION
+  static Future<Map<String, dynamic>> _fallbackFoodDetection([String description = '']) async {
     final dishes = _getCommonDishes();
-    final randomDish = dishes[DateTime.now().millisecondsSinceEpoch % dishes.length];
+    final randomDish = description.isNotEmpty ? description : dishes[DateTime.now().millisecondsSinceEpoch % dishes.length];
     final nutrition = _estimateNutritionFromDishType(randomDish);
     
     return {
@@ -153,43 +175,102 @@ class FoodRecognitionService {
       'protein': nutrition['protein'],
       'carbs': nutrition['carbs'],
       'fat': nutrition['fat'],
-      'confidence': 0.4, // Low confidence for fallback
+      'confidence': 0.4,
+      'source': 'fallback',
     };
   }
 
-  // Helper methods
+  // ENHANCED TEXT EXTRACTION - Integrate with your OCR service
   static Future<String> _extractTextFromImage(XFile image) async {
-    // This will integrate with your OCR service later
-    // For now, return empty string - user will provide description
-    return '';
-  }
-
-  static Future<void> _saveFoodEntry(
-    Map<String, dynamic> foodData, 
-    Position? position, {
-    required String source,
-  }) async {
     try {
-      await _journalService.addFoodEntry(
-        foodName: foodData['foodName'],
-        calories: foodData['calories'],
-        protein: foodData['protein'],
-        carbs: foodData['carbs'],
-        fat: foodData['fat'],
-        confidenceScore: foodData['confidence'],
-        source: source,
-        position: position,
-      );
+      // Use your existing OCR service
+      final OcrService ocrService = OcrService(); // You'll need to initialize this properly
+      return await ocrService.recognizeText(image);
     } catch (e) {
-      print('❌ Error saving food entry: $e');
-      // Don't throw - we want to return recognition results even if save fails
+      print('❌ OCR extraction error: $e');
+      return ''; // Return empty if OCR fails
     }
   }
 
+  // ENHANCED SAVE METHOD - Works with FoodItem model
+  static Future<void> _saveFoodEntry(FoodItem foodItem) async {
+    try {
+      await _journalService.addFoodEntry(
+        foodName: foodItem.name,
+        calories: foodItem.calories,
+        protein: foodItem.protein,
+        carbs: foodItem.carbs,
+        fat: foodItem.fat,
+        confidenceScore: foodItem.confidenceScore,
+        source: foodItem.source,
+        position: foodItem.position,
+      );
+    } catch (e) {
+      print('❌ Error saving food entry: $e');
+    }
+  }
+
+  // NEW METHOD: Check for allergy emergencies
+  static bool hasAllergyEmergency(FoodItem foodItem, List<String> userAllergies) {
+    return AllergenChecker.hasMatchingAllergens(
+      detectedAllergens: foodItem.detectedAllergens,
+      userAllergies: userAllergies,
+    );
+  }
+
+  // NEW METHOD: Get emergency allergens list
+  static List<String> getEmergencyAllergens(FoodItem foodItem, List<String> userAllergies) {
+    return AllergenChecker.getEmergencyAllergens(
+      detectedAllergens: foodItem.detectedAllergens,
+      userAllergies: userAllergies,
+    );
+  }
+
+  // NEW METHOD: Get food details for cultural insights
+  static Future<Map<String, dynamic>?> getCulturalDetails(String foodName) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$mealDbUrl/search.php?s=${Uri.encodeComponent(foodName)}')
+      );
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['meals'] != null && data['meals'].isNotEmpty) {
+          final meal = data['meals'][0];
+          return {
+            'name': meal['strMeal'],
+            'category': meal['strCategory'],
+            'area': meal['strArea'],
+            'instructions': meal['strInstructions'],
+            'image': meal['strMealThumb'],
+            'ingredients': _extractIngredients(meal),
+          };
+        }
+      }
+      return null;
+    } catch (e) {
+      print('❌ Cultural details error: $e');
+      return null;
+    }
+  }
+
+  // Helper method to extract ingredients from MealDB response
+  static List<String> _extractIngredients(Map<String, dynamic> meal) {
+    final ingredients = <String>[];
+    for (int i = 1; i <= 20; i++) {
+      final ingredient = meal['strIngredient$i'];
+      final measure = meal['strMeasure$i'];
+      if (ingredient != null && ingredient.isNotEmpty) {
+        ingredients.add('$measure $ingredient'.trim());
+      }
+    }
+    return ingredients;
+  }
+
+  // Keep existing helper methods for backward compatibility
   static Map<String, double> _estimateNutritionFromDishType(String dishName) {
     final lowerDish = dishName.toLowerCase();
     
-    // Rough nutrition estimates based on dish type
     if (lowerDish.contains('curry') || lowerDish.contains('pad')) {
       return {'calories': 450.0, 'protein': 15.0, 'carbs': 60.0, 'fat': 18.0};
     } else if (lowerDish.contains('salad')) {
@@ -214,28 +295,27 @@ class FoodRecognitionService {
     ];
   }
 
-  // Backward compatibility - keep your existing methods
+  // BACKWARD COMPATIBILITY - Keep your existing methods
   static Future<String> detectFoodFromImage(XFile image) async {
     final result = await recognizeAndSaveFood(image);
     return result['foodName'];
   }
 
+  // Original method signature for backward compatibility
+  static Future<Map<String, dynamic>> recognizeAndSaveFood(
+    XFile image, {
+    Position? currentPosition,
+    String userTextDescription = '',
+  }) async {
+    final foodItem = await recognizeAndAnalyzeFood(
+      image,
+      currentPosition: currentPosition,
+      userTextDescription: userTextDescription,
+    );
+    return foodItem.toMap();
+  }
+
   static Future<Map<String, dynamic>?> getFoodDetails(String foodName) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$mealDbUrl/search.php?s=${Uri.encodeComponent(foodName)}')
-      );
-      
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['meals'] != null && data['meals'].isNotEmpty) {
-          return data['meals'][0];
-        }
-      }
-      return null;
-    } catch (e) {
-      print('❌ Food details error: $e');
-      return null;
-    }
+    return await getCulturalDetails(foodName);
   }
 }

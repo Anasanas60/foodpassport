@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'services/food_journal_service.dart';
-import 'services/database_service.dart';
+import 'package:provider/provider.dart';
+import '../models/passport_stamp.dart';
+import '../models/user_achievements.dart';
+import '../services/achievement_service.dart';
+import '../services/food_state_service.dart';
 import 'animations/shimmer_loading.dart';
 
 class PassportStampsScreen extends StatefulWidget {
@@ -11,11 +14,8 @@ class PassportStampsScreen extends StatefulWidget {
 }
 
 class _PassportStampsScreenState extends State<PassportStampsScreen> {
-  final FoodJournalService _journalService = FoodJournalService();
-  final DatabaseService _dbService = DatabaseService();
-  List<Map<String, dynamic>> _stamps = [];
-  List<Map<String, dynamic>> _foodEntries = [];
-  Map<String, dynamic>? _userStats;
+  List<PassportStamp> _earnedStamps = [];
+  UserAchievements _userStats = UserAchievements.initial();
   bool _isLoading = true;
 
   @override
@@ -30,14 +30,14 @@ class _PassportStampsScreenState extends State<PassportStampsScreen> {
         _isLoading = true;
       });
 
-      final stamps = await _dbService.getPassportStamps();
-      final entries = await _journalService.getFoodEntries();
-      final stats = await _dbService.getUserStats();
+      // Simulate loading delay
+      await Future.delayed(const Duration(milliseconds: 800));
+      
+      // In a real app, you'd load from database
+      // For now, we'll use mock data that simulates achievements
+      _loadMockAchievements();
 
       setState(() {
-        _stamps = stamps;
-        _foodEntries = entries;
-        _userStats = stats;
         _isLoading = false;
       });
     } catch (e) {
@@ -45,6 +45,90 @@ class _PassportStampsScreenState extends State<PassportStampsScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  void _loadMockAchievements() {
+    // Mock earned stamps based on user activity
+    final foodState = Provider.of<FoodStateService>(context, listen: false);
+    final foodHistory = foodState.foodHistory;
+    
+    // Calculate mock stats based on actual food history
+    final uniqueFoods = foodHistory.map((f) => f.name).toSet().length;
+    final totalCalories = foodHistory.fold(0.0, (sum, f) => sum + f.calories).round();
+    final uniqueCuisines = foodHistory.where((f) => f.area != null).map((f) => f.area!).toSet().length;
+    
+    _userStats = UserAchievements(
+      totalPoints: uniqueFoods * 10 + totalCalories ~/ 100,
+      level: _calculateLevel(uniqueFoods * 10 + totalCalories ~/ 100),
+      foodsDiscovered: uniqueFoods,
+      cuisinesTried: uniqueCuisines,
+      totalCalories: totalCalories,
+      currentStreak: 3, // Mock streak
+      bestStreak: 7,
+      lastActivity: DateTime.now(),
+      cuisineCounts: {},
+      achievementProgress: {},
+    );
+
+    // Mock earned stamps based on progress
+    _earnedStamps = [];
+    
+    if (uniqueFoods >= 1) {
+      _earnedStamps.add(PassportStamp(
+        id: 'first_food',
+        title: 'First Discovery!',
+        description: 'Scan your first food item',
+        type: StampType.milestone,
+        category: StampCategory.beginner,
+        points: 50,
+        earnedDate: DateTime.now().subtract(const Duration(days: 5)),
+        icon: '🆕',
+        color: Colors.blue,
+      ));
+    }
+    
+    if (uniqueFoods >= 5) {
+      _earnedStamps.add(PassportStamp(
+        id: 'food_explorer',
+        title: 'Food Explorer',
+        description: 'Discover 5 different foods',
+        type: StampType.milestone,
+        category: StampCategory.beginner,
+        points: 100,
+        earnedDate: DateTime.now().subtract(const Duration(days: 2)),
+        icon: '🔍',
+        color: Colors.green,
+      ));
+    }
+    
+    if (totalCalories >= 1000) {
+      _earnedStamps.add(PassportStamp(
+        id: 'calorie_counter',
+        title: 'Calorie Counter',
+        description: 'Log 1,000 total calories',
+        type: StampType.nutrition,
+        category: StampCategory.beginner,
+        points: 80,
+        earnedDate: DateTime.now().subtract(const Duration(days: 1)),
+        icon: '🔥',
+        color: Colors.orange,
+      ));
+    }
+  }
+
+  int _calculateLevel(int points) {
+    const thresholds = [0, 100, 300, 600, 1000, 1500];
+    for (int i = thresholds.length - 1; i >= 0; i--) {
+      if (points >= thresholds[i]) return i + 1;
+    }
+    return 1;
+  }
+
+  List<PassportStamp> get _availableStamps {
+    final earnedIds = _earnedStamps.map((s) => s.id).toSet();
+    return AchievementService._allStamps
+        .where((stamp) => !earnedIds.contains(stamp.id))
+        .toList();
   }
 
   @override
@@ -57,24 +141,23 @@ class _PassportStampsScreenState extends State<PassportStampsScreen> {
           children: [
             Icon(Icons.airplane_ticket, color: Color(0xFFffd700)),
             SizedBox(width: 12),
-            Text('Travel Visa Stamps 🛂'),
+            Text('Food Passport 🛂'),
           ],
         ),
-        backgroundColor: theme.colorScheme.primary,
+        backgroundColor: const Color(0xFF8B4513),
+        foregroundColor: Colors.white,
         elevation: 0,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-            bottom: Radius.circular(20),
-          ),
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
         ),
       ),
       body: _isLoading ? _buildLoadingState(theme) : _buildContent(theme),
       floatingActionButton: FloatingActionButton(
         onPressed: _loadData,
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: theme.colorScheme.secondary,
+        backgroundColor: const Color(0xFF8B4513),
+        foregroundColor: Colors.white,
         child: const Icon(Icons.refresh),
-        tooltip: 'Refresh Stamps',
+        tooltip: 'Refresh Passport',
       ),
     );
   }
@@ -85,19 +168,20 @@ class _PassportStampsScreenState extends State<PassportStampsScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: 60,
-            height: 60,
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary,
+              color: const Color(0xFF8B4513),
               shape: BoxShape.circle,
-              border: Border.all(color: theme.colorScheme.secondary, width: 2),
+              border: Border.all(color: Colors.white, width: 2),
             ),
-            child: const Icon(Icons.airplane_ticket,
-                color: Colors.white, size: 30),
+            child: const Icon(Icons.airplane_ticket, color: Colors.white, size: 40),
           ),
           const SizedBox(height: 20),
+          const CircularProgressIndicator(color: Color(0xFF8B4513)),
+          const SizedBox(height: 20),
           Text(
-            'Loading your travel achievements...',
+            'Loading your culinary passport...',
             style: TextStyle(fontSize: 16, color: theme.colorScheme.primary),
           ),
         ],
@@ -108,35 +192,28 @@ class _PassportStampsScreenState extends State<PassportStampsScreen> {
   Widget _buildContent(ThemeData theme) {
     return RefreshIndicator(
       onRefresh: _loadData,
-      backgroundColor: theme.colorScheme.primary,
-      color: theme.colorScheme.secondary,
+      backgroundColor: const Color(0xFF8B4513),
+      color: Colors.white,
       child: CustomScrollView(
         slivers: [
           _buildPassportHeader(theme),
-          _buildVisaStampsSection(theme),
-          _buildAvailableVisasSection(theme),
-          _buildTravelProgressSection(theme),
+          _buildLevelProgressSection(theme),
+          _buildEarnedStampsSection(theme),
+          _buildAvailableStampsSection(theme),
+          _buildStatisticsSection(theme),
         ],
       ),
     );
   }
 
   SliverToBoxAdapter _buildPassportHeader(ThemeData theme) {
-    final totalFoods = _foodEntries.length;
-    final earnedStamps = _stamps.length;
-    final totalCalories = _userStats?['total_calories'] ?? 0;
-    final currentStreak = _userStats?['current_streak'] ?? 0;
-
     return SliverToBoxAdapter(
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              theme.colorScheme.primary,
-              theme.colorScheme.primaryContainer
-            ],
+            colors: [Color(0xFF8B4513), Color(0xFFA0522D)],
           ),
           borderRadius: const BorderRadius.only(
             bottomLeft: Radius.circular(30),
@@ -154,46 +231,47 @@ class _PassportStampsScreenState extends State<PassportStampsScreen> {
           padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
+              // Level Badge
               Container(
-                width: 80,
-                height: 80,
+                width: 100,
+                height: 100,
                 decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(25),
+                  color: Colors.white.withAlpha(30),
                   shape: BoxShape.circle,
-                  border:
-                      Border.all(color: theme.colorScheme.secondary, width: 2),
+                  border: Border.all(color: Colors.white, width: 3),
                 ),
-                child: const Icon(Icons.airplane_ticket,
-                    size: 40, color: Colors.white),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Lv${_userStats.level}',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      _userStats.levelTitle,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.white70,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+              
+              // Stats Row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildTravelStatItem(
-                    _isLoading ? '0' : earnedStamps.toString(),
-                    'Visas Collected',
-                    Icons.airplane_ticket,
-                    theme,
-                  ),
-                  _buildTravelStatItem(
-                    _isLoading ? '0' : totalFoods.toString(),
-                    'Culinary Stops',
-                    Icons.restaurant,
-                    theme,
-                  ),
-                  _buildTravelStatItem(
-                    _isLoading ? '0' : currentStreak.toString(),
-                    'Travel Days',
-                    Icons.local_fire_department,
-                    theme,
-                  ),
-                  _buildTravelStatItem(
-                    _isLoading ? '0' : totalCalories.toString(),
-                    'Calories',
-                    Icons.bolt,
-                    theme,
-                  ),
+                  _buildStatItem(_earnedStamps.length.toString(), 'Stamps', Icons.star),
+                  _buildStatItem(_userStats.foodsDiscovered.toString(), 'Foods', Icons.restaurant),
+                  _buildStatItem(_userStats.totalPoints.toString(), 'Points', Icons.emoji_events),
+                  _buildStatItem('${_userStats.currentStreak}d', 'Streak', Icons.local_fire_department),
                 ],
               ),
             ],
@@ -203,86 +281,146 @@ class _PassportStampsScreenState extends State<PassportStampsScreen> {
     );
   }
 
-  Widget _buildTravelStatItem(
-      String value, String label, IconData icon, ThemeData theme) {
+  Widget _buildStatItem(String value, String label, IconData icon) {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(6),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white.withAlpha(25),
+            color: Colors.white.withAlpha(40),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: theme.colorScheme.secondary, size: 20),
+          child: Icon(icon, color: Colors.white, size: 20),
         ),
         const SizedBox(height: 6),
-        Text(value,
-            style: const TextStyle(
-                fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-        Text(label, style: const TextStyle(fontSize: 10, color: Colors.white70)),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 10, color: Colors.white70),
+        ),
       ],
     );
   }
 
-  SliverToBoxAdapter _buildVisaStampsSection(ThemeData theme) {
+  SliverToBoxAdapter _buildLevelProgressSection(ThemeData theme) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: Color(0xFF8B4513), width: 2),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.auto_awesome, color: Color(0xFF8B4513)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'LEVEL PROGRESS',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                LinearProgressIndicator(
+                  value: _userStats.levelProgress,
+                  backgroundColor: Colors.grey[300],
+                  color: const Color(0xFF8B4513),
+                  borderRadius: BorderRadius.circular(10),
+                  minHeight: 12,
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Lv${_userStats.level} ${_userStats.levelTitle}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      '${_userStats.pointsToNextLevel} pts to next level',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  SliverToBoxAdapter _buildEarnedStampsSection(ThemeData theme) {
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSectionHeader('🛂 COLLECTED VISAS', theme.colorScheme.primary),
-            const SizedBox(height: 12),
+            _buildSectionHeader('🏆 EARNED STAMPS', const Color(0xFF2e7d32)),
+            const SizedBox(height: 16),
             Text(
-              _isLoading
-                  ? 'Loading travel achievements...'
-                  : '${_stamps.length} visas in your passport',
-              style: TextStyle(
-                  fontSize: 14, color: theme.colorScheme.onSurface.withAlpha(153)),
+              '${_earnedStamps.length} stamps collected • ${_earnedStamps.fold(0, (sum, stamp) => sum + stamp.points)} total points',
+              style: TextStyle(color: Colors.grey[600]),
             ),
             const SizedBox(height: 20),
-            _isLoading
-                ? _buildShimmerStampsGrid(true)
-                : _buildVisaStampsGrid(_stamps, true, theme),
+            _earnedStamps.isEmpty
+                ? _buildEmptyState('No stamps earned yet!\nStart scanning foods to earn your first stamps!')
+                : _buildStampsGrid(_earnedStamps, true, theme),
           ],
         ),
       ),
     );
   }
 
-  SliverToBoxAdapter _buildAvailableVisasSection(ThemeData theme) {
-    final availableAchievements = _getAvailableAchievements();
-
+  SliverToBoxAdapter _buildAvailableStampsSection(ThemeData theme) {
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSectionHeader('🎯 NEXT DESTINATIONS', const Color(0xFF8b0000)),
-            const SizedBox(height: 12),
+            _buildSectionHeader('🎯 AVAILABLE STAMPS', const Color(0xFF8b0000)),
+            const SizedBox(height: 16),
             Text(
-              _isLoading
-                  ? 'Checking travel progress...'
-                  : '${availableAchievements.length} visas to unlock',
-              style: TextStyle(
-                  fontSize: 14, color: theme.colorScheme.onSurface.withAlpha(153)),
+              '${_availableStamps.length} stamps to unlock • Keep exploring!',
+              style: TextStyle(color: Colors.grey[600]),
             ),
             const SizedBox(height: 20),
-            _isLoading
-                ? _buildShimmerStampsGrid(false)
-                : _buildVisaStampsGrid(availableAchievements, false, theme),
+            _availableStamps.isEmpty
+                ? _buildEmptyState('All stamps earned! 🎉\nYou are a true culinary master!')
+                : _buildStampsGrid(_availableStamps, false, theme),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title, Color backgroundColor) {
+  Widget _buildSectionHeader(String title, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: color,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFffd700)),
       ),
@@ -298,183 +436,28 @@ class _PassportStampsScreenState extends State<PassportStampsScreen> {
     );
   }
 
-  Widget _buildVisaStampsGrid(
-      List<Map<String, dynamic>> stamps, bool isEarned, ThemeData theme) {
-    if (stamps.isEmpty) {
-      return _buildEmptyPassportState(
-        isEarned
-            ? 'No visas collected yet!\nStart your culinary journey to earn your first stamp.'
-            : 'All destinations visited!\nYou are a Culinary Explorer! 🎉',
-      );
-    }
-
+  Widget _buildStampsGrid(List<PassportStamp> stamps, bool isEarned, ThemeData theme) {
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: 0.85,
+        childAspectRatio: 0.9,
       ),
       itemCount: stamps.length,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemBuilder: (context, index) =>
-          _buildVisaStampCard(stamps[index], isEarned, theme),
+      itemBuilder: (context, index) => _buildStampCard(stamps[index], isEarned, theme),
     );
   }
 
-  Widget _buildShimmerStampsGrid(bool isEarned) {
-    return GridView.builder(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 0.85,
-      ),
-      itemCount: 4,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemBuilder: (context, index) {
-        return ShimmerLoading(
-          isLoading: true,
-          child: Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: Colors.grey.shade300),
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                color: Colors.grey[200],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  SliverToBoxAdapter _buildTravelProgressSection(ThemeData theme) {
-    return SliverToBoxAdapter(
-      child: ShimmerLoading(
-        isLoading: _isLoading,
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: const BorderSide(color: Color(0xFFffd700), width: 1),
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Colors.white, Color(0xFFf8f5f0)],
-                ),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.travel_explore,
-                            color: theme.colorScheme.primary),
-                        const SizedBox(width: 8),
-                        Text(
-                          'TRAVEL PROGRESS PASSPORT',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.primary,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    _buildProgressItem(
-                        'Culinary Variety',
-                        _getUniqueFoodsCount(),
-                        10,
-                        Icons.restaurant,
-                        theme),
-                    _buildProgressItem(
-                        'Calorie Journey',
-                        _userStats?['total_calories']?.toInt() ?? 0,
-                        5000,
-                        Icons.bolt,
-                        theme),
-                    _buildProgressItem(
-                        'Travel Streak',
-                        _userStats?['current_streak'] ?? 0,
-                        7,
-                        Icons.local_fire_department,
-                        theme),
-                    _buildProgressItem(
-                        'Expedition Record',
-                        _userStats?['best_streak'] ?? 0,
-                        30,
-                        Icons.emoji_events,
-                        theme),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProgressItem(
-      String label, int current, int target, IconData icon, ThemeData theme) {
-    final percentage = target > 0 ? (current / target).clamp(0.0, 1.0) : 0.0;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 18, color: theme.colorScheme.primary),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(label,
-                    style: const TextStyle(fontWeight: FontWeight.w500)) ,
-              ),
-              Text('$current/$target',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
-            ],
-          ),
-          const SizedBox(height: 6),
-          LinearProgressIndicator(
-            value: percentage,
-            backgroundColor: Colors.grey[300],
-            color: percentage >= 1.0 ? Colors.green : theme.colorScheme.primary,
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVisaStampCard(
-      Map<String, dynamic> stamp, bool isEarned, ThemeData theme) {
-    final stampColor = _getStampColor(stamp['category']);
-    final darkenedColor = _darkenColor(stampColor, 0.2);
-
+  Widget _buildStampCard(PassportStamp stamp, bool isEarned, ThemeData theme) {
     return Card(
       elevation: isEarned ? 4 : 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
-          color: isEarned ? stampColor : Colors.grey.shade300,
+          color: isEarned ? stamp.color : Colors.grey.shade300,
           width: isEarned ? 2 : 1,
         ),
       ),
@@ -485,12 +468,12 @@ class _PassportStampsScreenState extends State<PassportStampsScreen> {
               ? LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [stampColor, darkenedColor],
+                  colors: [stamp.color, _darkenColor(stamp.color, 0.2)],
                 )
-              : const LinearGradient(
+              : LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFFf5f5f5), Color(0xFFfafafa)],
+                  colors: [Colors.grey[100]!, Colors.grey[200]!],
                 ),
         ),
         child: Padding(
@@ -498,59 +481,68 @@ class _PassportStampsScreenState extends State<PassportStampsScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: isEarned ? Colors.white : const Color(0xFFe0e0e0),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isEarned ? stampColor : const Color(0xFFbdbdbd),
-                    width: 2,
-                  ),
-                ),
-                child: Icon(
-                  _getStampIcon(stamp['type'] ?? stamp['stamp_type']),
-                  size: 24,
-                  color: isEarned ? stampColor : const Color(0xFF757575),
-                ),
+              // Stamp Icon
+              Text(
+                stamp.icon,
+                style: const TextStyle(fontSize: 32),
               ),
               const SizedBox(height: 8),
+              
+              // Stamp Title
               Text(
-                stamp['title']?.toString() ?? 'Unknown Visa',
+                stamp.title,
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: isEarned ? Colors.white : const Color(0xFF424242),
+                  color: isEarned ? Colors.white : Colors.grey[800],
                   fontSize: 12,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 2,
               ),
               const SizedBox(height: 4),
+              
+              // Points Badge
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: isEarned
-                      ? Colors.white.withAlpha(51)
-                      : const Color(0xFFe0e0e0),
+                  color: isEarned ? Colors.white.withAlpha(40) : Colors.grey[300],
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  isEarned ? 'APPROVED' : 'PENDING',
+                  '${stamp.points} pts',
                   style: TextStyle(
-                    fontSize: 8,
+                    fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: isEarned ? Colors.white : const Color(0xFF616161),
-                    letterSpacing: 1,
+                    color: isEarned ? Colors.white : Colors.grey[700],
                   ),
                 ),
               ),
-              if (isEarned && stamp['earned_date'] != null) ...[
+              const SizedBox(height: 4),
+              
+              // Status Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(
+                  color: isEarned ? Colors.green : Colors.orange,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  isEarned ? 'EARNED' : 'LOCKED',
+                  style: const TextStyle(
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              
+              // Earned Date
+              if (isEarned) ...[
                 const SizedBox(height: 4),
                 Text(
-                  _formatDate(DateTime.fromMillisecondsSinceEpoch(
-                      stamp['earned_date'])) ,
-                  style: const TextStyle(
+                  stamp.formattedDate,
+                  style: TextStyle(
                     color: Colors.white70,
                     fontSize: 8,
                   ),
@@ -563,7 +555,65 @@ class _PassportStampsScreenState extends State<PassportStampsScreen> {
     );
   }
 
-  Widget _buildEmptyPassportState(String message) {
+  SliverToBoxAdapter _buildStatisticsSection(ThemeData theme) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: Color(0xFF8B4513), width: 2),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.analytics, color: Color(0xFF8B4513)),
+                    SizedBox(width: 8),
+                    Text(
+                      'CULINARY STATISTICS',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF8B4513),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                _buildStatRow('Total Foods Discovered', _userStats.foodsDiscovered.toString(), Icons.restaurant),
+                _buildStatRow('Unique Cuisines Tried', _userStats.cuisinesTried.toString(), Icons.public),
+                _buildStatRow('Total Calories Logged', '${_userStats.totalCalories} cal', Icons.bolt),
+                _buildStatRow('Current Streak', '${_userStats.currentStreak} days', Icons.local_fire_department),
+                _buildStatRow('Best Streak', '${_userStats.bestStreak} days', Icons.emoji_events),
+                _buildStatRow('Total Points', _userStats.totalPoints.toString(), Icons.workspace_premium),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatRow(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: const Color(0xFF8B4513)),
+          const SizedBox(width: 12),
+          Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w500))),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String message) {
     return Padding(
       padding: const EdgeInsets.all(40.0),
       child: Column(
@@ -572,102 +622,32 @@ class _PassportStampsScreenState extends State<PassportStampsScreen> {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
+              color: Colors.grey[100],
               shape: BoxShape.circle,
-              border: Border.all(
-                  color: Theme.of(context).colorScheme.secondary, width: 2),
+              border: Border.all(color: const Color(0xFF8B4513), width: 2),
             ),
-            child: const Icon(Icons.airplane_ticket,
-                size: 40, color: Color(0xFF1a237e)),
+            child: const Icon(Icons.auto_awesome, size: 40, color: Color(0xFF8B4513)),
           ),
           const SizedBox(height: 20),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface.withAlpha(153),
-                fontSize: 14),
+            style: const TextStyle(
+              color: Colors.grey,
+              fontSize: 14,
+            ),
           ),
         ],
       ),
     );
   }
 
-  List<Map<String, dynamic>> _getAvailableAchievements() {
-    final earnedTypes = _stamps.map((s) => s['stamp_type']).toSet();
-
-    return [
-      {
-        'type': 'thai_expert',
-        'title': 'Thai Cuisine Visa',
-        'description': 'Try 10 different Thai dishes',
-        'category': 'cuisine',
-      },
-      {
-        'type': 'calorie_master',
-        'title': 'Calorie Expedition',
-        'description': 'Log 5,000 total calories',
-        'category': 'health',
-      },
-      {
-        'type': 'world_traveler',
-        'title': 'Global Food Visa',
-        'description': 'Foods from 3 different countries',
-        'category': 'travel',
-      },
-      {
-        'type': 'streak_champion',
-        'title': '7-Day Travel Visa',
-        'description': '7-day logging streak',
-        'category': 'consistency',
-      },
-    ]
-        .where((achievement) => !earnedTypes.contains(achievement['type']))
-        .toList();
-  }
-
-  int _getUniqueFoodsCount() {
-    return _foodEntries
-        .map((e) => e['foodName'].toString().toLowerCase())
-        .toSet()
-        .length;
-  }
-
-  Color _getStampColor(String? category) {
-    final colors = {
-      'milestone': const Color(0xFF1a237e),
-      'variety': const Color(0xFF2e7d32),
-      'cuisine': const Color(0xFF8b0000),
-      'health': const Color(0xFFff6f00),
-      'travel': const Color(0xFF4a148c),
-      'consistency': const Color(0xFF00695c),
-    };
-    return colors[category] ?? const Color(0xFF1a237e);
-  }
-
   Color _darkenColor(Color color, double factor) {
-    assert(factor >= 0 && factor <= 1);
     return Color.fromARGB(
-      (color.alpha * (1 - factor)).toInt(),
-      (color.red * (1 - factor)).toInt(),
-      (color.green * (1 - factor)).toInt(),
-      (color.blue * (1 - factor)).toInt(),
+      color.alpha,
+      (color.red * (1 - factor)).round(),
+      (color.green * (1 - factor)).round(),
+      (color.blue * (1 - factor)).round(),
     );
-  }
-
-  IconData _getStampIcon(String? type) {
-    final icons = {
-      'first_food': Icons.restaurant,
-      'food_explorer': Icons.explore,
-      'thai_expert': Icons.spa,
-      'calorie_master': Icons.bolt,
-      'world_traveler': Icons.public,
-      'streak_champion': Icons.local_fire_department,
-    };
-    return icons[type] ?? Icons.star;
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
   }
 }
