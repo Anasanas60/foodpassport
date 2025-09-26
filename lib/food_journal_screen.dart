@@ -29,7 +29,7 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
       });
 
       final entries = await _journalService.getFoodEntries();
-      
+
       setState(() {
         _foodEntries = entries;
         _isLoading = false;
@@ -48,8 +48,9 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFf8f5f0),
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
         title: const Row(
           children: [
@@ -58,12 +59,10 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
             Text('Travel Food Diary 📖'),
           ],
         ),
-        backgroundColor: const Color(0xFF8b0000), // Burgundy for journal
+        backgroundColor: theme.colorScheme.primaryContainer,
         elevation: 0,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-            bottom: Radius.circular(20),
-          ),
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
         ),
         actions: [
           IconButton(
@@ -77,40 +76,40 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Passport-style header
-            _buildPassportHeader(),
+            _buildPassportHeader(theme),
             const SizedBox(height: 20),
-            
-            // Content area
             Expanded(
-              child: _buildContent(),
+              child: _buildContent(theme),
             ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _refreshData,
-        backgroundColor: const Color(0xFF8b0000),
-        foregroundColor: const Color(0xFFffd700),
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.secondary,
         child: const Icon(Icons.refresh),
         tooltip: 'Refresh Travel Diary',
       ),
     );
   }
 
-  Widget _buildPassportHeader() {
+  Widget _buildPassportHeader(ThemeData theme) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: Color(0xFFffd700), width: 2),
+        side: BorderSide(color: theme.colorScheme.secondary, width: 2),
       ),
       child: Container(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF8b0000), Color(0xFFa52a2a)],
+            colors: [
+              theme.colorScheme.primary,
+              theme.colorScheme.primaryContainer
+            ],
           ),
           borderRadius: BorderRadius.circular(20),
         ),
@@ -120,20 +119,18 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
             isLoading: _isLoading,
             child: Column(
               children: [
-                // Passport Stamp Icon
                 Container(
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: const Color(0x1AFFFFFF),
+                    color: Colors.white.withOpacity(0.1),
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFFffd700), width: 2),
+                    border: Border.all(
+                        color: theme.colorScheme.secondary, width: 2),
                   ),
                   child: const Icon(Icons.book, color: Colors.white, size: 30),
                 ),
                 const SizedBox(height: 16),
-                
-                // Travel Statistics
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
@@ -141,16 +138,21 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
                       _isLoading ? '0' : _foodEntries.length.toString(),
                       'Culinary Stops',
                       Icons.location_on,
+                      theme,
                     ),
                     _buildTravelStat(
-                      _isLoading ? '0' : _calculateTotalCalories().toStringAsFixed(0),
+                      _isLoading
+                          ? '0'
+                          : _calculateTotalCalories().toStringAsFixed(0),
                       'Calories Burned',
                       Icons.bolt,
+                      theme,
                     ),
                     _buildTravelStat(
                       _isLoading ? '0' : _getUniqueCountries().length.toString(),
                       'Countries',
                       Icons.public,
+                      theme,
                     ),
                   ],
                 ),
@@ -162,39 +164,34 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
     );
   }
 
-  Widget _buildTravelStat(String value, String label, IconData icon) {
+  Widget _buildTravelStat(
+      String value, String label, IconData icon, ThemeData theme) {
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0x33FFFFFF),
+            color: Colors.white.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: const Color(0xFFffd700), size: 20),
+          child: Icon(icon, color: theme.colorScheme.secondary, size: 20),
         ),
         const SizedBox(height: 8),
         Text(
           value,
           style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+              fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color(0xFFffd700),
-          ),
+          style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.8)),
           textAlign: TextAlign.center,
         ),
       ],
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(ThemeData theme) {
     if (_isLoading) {
       return _buildShimmerLoadingGrid();
     }
@@ -209,8 +206,8 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
 
     return RefreshIndicator(
       onRefresh: _refreshData,
-      backgroundColor: const Color(0xFF8b0000),
-      color: const Color(0xFFffd700),
+      backgroundColor: theme.colorScheme.primary,
+      color: theme.colorScheme.secondary,
       child: GridView.builder(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
@@ -265,9 +262,10 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: const Color(0xFF8b0000),
+              color: Theme.of(context).colorScheme.primary,
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFffd700), width: 2),
+              border: Border.all(
+                  color: Theme.of(context).colorScheme.secondary, width: 2),
             ),
             child: const Icon(Icons.error_outline, color: Colors.white, size: 40),
           ),
@@ -281,9 +279,8 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
           ElevatedButton(
             onPressed: _loadFoodEntries,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF8b0000),
-              foregroundColor: const Color(0xFFffd700),
-            ),
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.secondary),
             child: const Text('Retry Journey'),
           ),
         ],
@@ -300,11 +297,13 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
             width: 100,
             height: 100,
             decoration: BoxDecoration(
-              color: const Color(0xFFf8f5f0),
+              color: Theme.of(context).colorScheme.surface,
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFffd700), width: 3),
+              border: Border.all(
+                  color: Theme.of(context).colorScheme.secondary, width: 3),
             ),
-            child: const Icon(Icons.travel_explore, size: 50, color: Color(0xFF8b0000)),
+            child: const Icon(Icons.travel_explore,
+                size: 50, color: Color(0xFF8b0000)),
           ),
           const SizedBox(height: 20),
           const Text(
@@ -329,7 +328,8 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF8b0000),
               foregroundColor: const Color(0xFFffd700),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
@@ -347,24 +347,23 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
 
   Widget _buildTravelDiaryCard(Map<String, dynamic> entry) {
     final foodColor = _getFoodColor(entry['foodName']);
-    
+
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFffd700), width: 1),
+        side: BorderSide(color: Theme.of(context).colorScheme.secondary, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Food Image/Icon Section with Passport Stamp Style
           Container(
             height: 100,
             decoration: BoxDecoration(
               gradient: LinearGradient(
+                colors: [foodColor, _darkenColor(foodColor, 0.3)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [foodColor, _darkenColor(foodColor, 0.3)],
               ),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(16),
@@ -377,11 +376,7 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.restaurant,
-                        size: 30,
-                        color: Colors.white,
-                      ),
+                      const Icon(Icons.restaurant, size: 30, color: Colors.white),
                       const SizedBox(height: 4),
                       Text(
                         '${entry['calories']?.toStringAsFixed(0) ?? '0'} cal',
@@ -390,11 +385,10 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
-                      ),
+                      )
                     ],
                   ),
                 ),
-                // Passport Stamp Corner
                 Positioned(
                   top: 8,
                   right: 8,
@@ -404,25 +398,18 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
                       color: Colors.white.withOpacity(0.9),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      Icons.star,
-                      size: 16,
-                      color: foodColor,
-                    ),
+                    child: Icon(Icons.star, size: 16, color: foodColor),
                   ),
                 ),
               ],
             ),
           ),
-          
-          // Food Details Section
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(12.0),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Food Name
                   Text(
                     entry['foodName']?.toString() ?? 'Unknown Dish',
                     style: const TextStyle(
@@ -434,45 +421,36 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  
-                  // Location with Icon
-                  if (entry['location'] != null && entry['location']['address'] != null)
+                  if (entry['location'] != null &&
+                      entry['location']['address'] != null)
                     Row(
                       children: [
-                        Icon(Icons.location_on, size: 12, color: Colors.grey[600]),
+                        Icon(Icons.location_on,
+                            size: 12, color: Colors.grey[600]),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             entry['location']['address'].toString(),
                             style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 10,
-                            ),
+                                color: Colors.grey[600], fontSize: 10),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
-                  
-                  // Date with Icon
                   Row(
                     children: [
-                      Icon(Icons.calendar_today, size: 12, color: Colors.grey[600]),
+                      Icon(Icons.calendar_today,
+                          size: 12, color: Colors.grey[600]),
                       const SizedBox(width: 4),
                       Text(
                         _formatDate(entry['timestamp']),
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
                       ),
                     ],
                   ),
-                  
                   const Spacer(),
-                  
-                  // Confidence Score with Star
                   Row(
                     children: [
                       Icon(Icons.verified, size: 12, color: foodColor),
@@ -480,17 +458,16 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
                       Text(
                         '${((entry['confidenceScore'] ?? 0) * 100).toStringAsFixed(0)}% confident',
                         style: TextStyle(
-                          fontSize: 10,
-                          color: foodColor,
-                          fontWeight: FontWeight.w500,
-                        ),
+                            fontSize: 10,
+                            color: foodColor,
+                            fontWeight: FontWeight.w500),
                       ),
                     ],
-                  ),
+                  )
                 ],
               ),
             ),
-          ),
+          )
         ],
       ),
     );
@@ -498,12 +475,12 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
 
   Color _getFoodColor(String? foodName) {
     final colors = [
-      const Color(0xFF1a237e), // Navy
-      const Color(0xFF2e7d32), // Green
-      const Color(0xFF8b0000), // Burgundy
-      const Color(0xFFff6f00), // Orange
-      const Color(0xFF4a148c), // Purple
-      const Color(0xFF00695c), // Teal
+      const Color(0xFF1a237e),
+      const Color(0xFF2e7d32),
+      const Color(0xFF8b0000),
+      const Color(0xFFff6f00),
+      const Color(0xFF4a148c),
+      const Color(0xFF00695c),
     ];
     final index = (foodName?.hashCode ?? 0).abs() % colors.length;
     return colors[index];
@@ -523,7 +500,7 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
     if (date == null) return 'Unknown date';
     final now = DateTime.now();
     final difference = now.difference(date);
-    
+
     if (difference.inDays == 0) {
       return 'Today';
     } else if (difference.inDays == 1) {
@@ -549,7 +526,7 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
       }
       return address;
     }).where((country) => country.isNotEmpty).toSet().toList();
-    
+
     return countries;
   }
 }

@@ -11,8 +11,7 @@ import 'package:foodpassport/services/ocr_service.dart';
 import 'package:foodpassport/services/ocr_service_mobile.dart';
 import 'package:foodpassport/services/ocr_service_web.dart';
 import 'package:foodpassport/services/translation_service.dart';
-import 'package:foodpassport/services/food_recognition_service.dart'; // NEW
-import 'package:foodpassport/services/food_journal_service.dart'; // NEW
+import 'package:foodpassport/services/food_recognition_service.dart';
 
 class MenuScanScreen extends StatefulWidget {
   const MenuScanScreen({super.key});
@@ -23,16 +22,15 @@ class MenuScanScreen extends StatefulWidget {
 
 class _MenuScanScreenState extends State<MenuScanScreen> {
   bool isScanning = false;
-  bool isRecognizingFood = false; // NEW
+  bool isRecognizingFood = false;
   String? scannedText;
-  String? recognizedFood; // NEW
+  String? recognizedFood;
   XFile? capturedImage;
   Uint8List? webImage;
 
   final ImagePicker _picker = ImagePicker();
   late final OcrService _ocrService;
   final TranslationService _translationService = TranslationService();
-  final FoodJournalService _journalService = FoodJournalService(); // NEW
 
   @override
   void initState() {
@@ -44,7 +42,7 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
     setState(() {
       isScanning = true;
       scannedText = null;
-      recognizedFood = null; // NEW
+      recognizedFood = null;
       capturedImage = null;
       webImage = null;
     });
@@ -69,10 +67,10 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
           });
         }
 
-        // PARALLEL PROCESSING: OCR + Food Recognition
+        // Parallel processing: OCR + Food Recognition
         await Future.wait([
           _processOCR(image),
-          _recognizeAndSaveFood(image), // NEW: Food recognition
+          _recognizeAndSaveFood(image),
         ]);
       } else {
         setState(() {
@@ -92,7 +90,8 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
       String extractedText = await _ocrService.recognizeText(image);
 
       if (extractedText.trim().isEmpty) {
-        extractedText = "No text detected. Try again with better lighting or focus.";
+        extractedText =
+            "No text detected. Try again with better lighting or focus.";
       }
 
       String translatedText = await _translateText(extractedText);
@@ -107,29 +106,25 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
     }
   }
 
-  // NEW: Food recognition and database saving
   Future<void> _recognizeAndSaveFood(XFile image) async {
     try {
       setState(() {
         isRecognizingFood = true;
       });
 
-      // Get current location
       Position? currentPosition;
       try {
         currentPosition = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.medium,
         );
       } catch (e) {
-        print('Location error: $e');
-        // Continue without location
+        debugPrint('Location error: $e');
       }
 
-      // Recognize food using our enhanced service
       final foodResult = await FoodRecognitionService.recognizeAndSaveFood(
         image,
         currentPosition: currentPosition,
-        userTextDescription: 'menu item', // Optional text description
+        userTextDescription: 'menu item',
       );
 
       setState(() {
@@ -147,7 +142,6 @@ Confidence: ${((foodResult['confidence'] ?? 0) * 100).toStringAsFixed(0)}%
         isScanning = false;
       });
 
-      // Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -157,7 +151,6 @@ Confidence: ${((foodResult['confidence'] ?? 0) * 100).toStringAsFixed(0)}%
           ),
         );
       }
-
     } catch (e) {
       setState(() {
         recognizedFood = '❌ Food recognition failed: $e';
@@ -170,7 +163,7 @@ Confidence: ${((foodResult['confidence'] ?? 0) * 100).toStringAsFixed(0)}%
   Future<String> _translateText(String text) async {
     try {
       String targetLang = _getUserLanguage();
-      
+
       if (targetLang == 'en') {
         return '''
 ✨ OCR RESULT (English) ✨
@@ -182,7 +175,7 @@ ____________________________________
       }
 
       String translated = await _translationService.translate(text, targetLang);
-      
+
       return '''
 ✨ OCR RESULT (Translated to ${_getLanguageName(targetLang)}) ✨
 $translated
@@ -190,7 +183,7 @@ ____________________________________
 ℹ️ Original (English): 
 $text
 ⚠️ Contains allergens: peanuts, shellfish (if detected)
-      ''';
+        ''';
     } catch (e) {
       return '''
 🔄 TRANSLATION FAILED - Showing original text
@@ -198,7 +191,7 @@ Error: $e
 ____________________________________
 📜 Original Text:
 $text
-      ''';
+        ''';
     }
   }
 
@@ -208,8 +201,14 @@ $text
 
   String _getLanguageName(String code) {
     final languages = {
-      'th': 'Thai', 'es': 'Spanish', 'fr': 'French', 'de': 'German', 
-      'it': 'Italian', 'pt': 'Portuguese', 'zh': 'Chinese', 'ja': 'Japanese'
+      'th': 'Thai',
+      'es': 'Spanish',
+      'fr': 'French',
+      'de': 'German',
+      'it': 'Italian',
+      'pt': 'Portuguese',
+      'zh': 'Chinese',
+      'ja': 'Japanese'
     };
     return languages[code] ?? code.toUpperCase();
   }
@@ -226,10 +225,11 @@ $text
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Scan Restaurant Menu'),
-        backgroundColor: Colors.purple,
+        backgroundColor: theme.colorScheme.primary,
       ),
       body: Center(
         child: Padding(
@@ -242,7 +242,9 @@ $text
                   width: 200,
                   height: 200,
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey, width: 2),
+                    border: Border.all(
+                        color: theme.colorScheme.onSurface.withAlpha((0.1 * 255).round()),
+                        width: 2),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: ClipRRect(
@@ -252,56 +254,61 @@ $text
                 ),
                 const SizedBox(height: 20),
               ],
-
               if (isScanning || isRecognizingFood) ...[
                 if (isRecognizingFood) ...[
-                  const CircularProgressIndicator(color: Colors.orange),
+                  CircularProgressIndicator(color: theme.colorScheme.secondary),
                   const SizedBox(height: 20),
-                  const Text(
-                    '🔍 Identifying food...',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.orange),
+                  Text(
+                    '🔍 Identifying food...', 
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        color: theme.colorScheme.secondary),
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Analyzing nutrition and saving to journal...',
+                    'Analyzing nutrition and saving to journal...', 
                     style: TextStyle(fontSize: 16),
                     textAlign: TextAlign.center,
                   ),
                 ] else ...[
-                  const CircularProgressIndicator(color: Colors.purple),
+                  CircularProgressIndicator(color: theme.colorScheme.primary),
                   const SizedBox(height: 20),
                   const Text(
-                    '📸 Scanning menu...',
+                    '📸 Scanning menu...', 
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Extracting text with AI...',
+                    'Extracting text with AI...', 
                     style: TextStyle(fontSize: 16),
                   ),
                 ],
               ],
-
               if (scannedText != null && !isScanning) ...[
                 if (recognizedFood != null) ...[
-                  // FOOD RECOGNITION RESULTS
                   Card(
                     elevation: 4,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    color: Colors.orange[50],
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    color: theme.colorScheme.secondaryContainer,
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             '🍽️ FOOD IDENTIFIED & SAVED!',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.orange),
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.secondary),
                           ),
                           const SizedBox(height: 12),
                           Text(
                             recognizedFood!,
-                            style: const TextStyle(fontSize: 14, fontFamily: 'monospace'),
+                            style: const TextStyle(
+                                fontSize: 14, fontFamily: 'monospace'),
                             textAlign: TextAlign.left,
                           ),
                           const SizedBox(height: 16),
@@ -310,7 +317,7 @@ $text
                               Navigator.pushNamed(context, '/food-journal');
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange,
+                              backgroundColor: theme.colorScheme.secondary,
                             ),
                             child: const Text('View Food Journal'),
                           ),
@@ -320,24 +327,27 @@ $text
                   ),
                   const SizedBox(height: 20),
                 ],
-
-                // OCR TRANSLATION RESULTS
                 Card(
                   elevation: 4,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           '📜 AI MENU TRANSLATION',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.purple),
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary),
                         ),
                         const SizedBox(height: 12),
                         Text(
                           scannedText!,
-                          style: const TextStyle(fontSize: 16, fontFamily: 'monospace'),
+                          style: const TextStyle(
+                              fontSize: 16, fontFamily: 'monospace'),
                           textAlign: TextAlign.left,
                         ),
                         const SizedBox(height: 16),
@@ -367,12 +377,12 @@ $text
                   ),
                 ),
               ],
-
               if (!isScanning && scannedText == null) ...[
-                const Icon(Icons.menu_book, size: 80, color: Colors.purple),
+                Icon(Icons.menu_book, 
+                    size: 80, color: theme.colorScheme.primary),
                 const SizedBox(height: 20),
                 const Text(
-                  'Point camera at menu to translate\nand automatically identify food!', // UPDATED
+                  'Point camera at menu to translate\nand automatically identify food!',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
                   textAlign: TextAlign.center,
                 ),
@@ -380,10 +390,13 @@ $text
                 ElevatedButton.icon(
                   onPressed: _startCameraScan,
                   icon: const Icon(Icons.camera),
-                  label: const Text('Start Camera Scan', style: TextStyle(fontSize: 18)),
+                  label: const Text('Start Camera Scan',
+                      style: TextStyle(fontSize: 18)),
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 16, horizontal: 32),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
                 const SizedBox(height: 20),

@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/allergy.dart';
 
 class AllergyService {
-  static const String _baseUrl = 'https://api.foodallergydatabase.com/v1';
+
   static const String _fallbackApiUrl = 'https://my-json-server.typicode.com/foodallergy/db/allergies';
   
   // Fallback data for when API is unavailable
