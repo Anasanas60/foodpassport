@@ -41,7 +41,7 @@ class FoodItem {
     required this.timestamp,
   });
 
-  // Convert from your current Map structure
+  // FIXED: Add proper constructor with all required parameters
   factory FoodItem.fromRecognitionMap(Map<String, dynamic> data, {
     required String imagePath,
     Position? position,
@@ -49,11 +49,11 @@ class FoodItem {
     return FoodItem(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       name: data['foodName'] ?? 'Unknown Food',
-      confidenceScore: data['confidence'] ?? 0.0,
-      calories: data['calories'] ?? 0.0,
-      protein: data['protein'] ?? 0.0,
-      carbs: data['carbs'] ?? 0.0,
-      fat: data['fat'] ?? 0.0,
+      confidenceScore: (data['confidence'] ?? 0.0).toDouble(),
+      calories: (data['calories'] ?? 0.0).toDouble(),
+      protein: (data['protein'] ?? 0.0).toDouble(),
+      carbs: (data['carbs'] ?? 0.0).toDouble(),
+      fat: (data['fat'] ?? 0.0).toDouble(),
       servingSize: data['servingSize']?.toString(),
       servingUnit: data['servingUnit'],
       recipe: data['recipe'],
@@ -61,7 +61,7 @@ class FoodItem {
       category: data['category'],
       area: data['area'],
       source: data['source'] ?? 'unknown',
-      detectedAllergens: data['detectedAllergens'] ?? [],
+      detectedAllergens: List<String>.from(data['detectedAllergens'] ?? []),
       imagePath: imagePath,
       position: position,
       timestamp: DateTime.now(),
@@ -102,4 +102,7 @@ class FoodItem {
       'timestamp': timestamp.toIso8601String(),
     };
   }
+
+  // FIXED: Add missing toJson method for Position compatibility
+  Map<String, dynamic> toJson() => toMap();
 }
