@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/user_profile_service.dart';
+import '../services/allergy_service.dart';
 
 class PreferencesScreen extends StatefulWidget {
   const PreferencesScreen({super.key});
@@ -10,7 +11,7 @@ class PreferencesScreen extends StatefulWidget {
 }
 
 class _PreferencesScreenState extends State<PreferencesScreen> {
-  final _formKey = GlobalKey<FormState>();
+
   bool _avoidNuts = false;
   bool _avoidDairy = false;
   bool _avoidGluten = false;
@@ -18,12 +19,16 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   List<String> _additionalAllergies = [];
   final TextEditingController _customAllergyController = TextEditingController();
 
+  String _allergyAlertSensitivity = 'moderate+';
+
   @override
   void initState() {
     super.initState();
     final profileService = Provider.of<UserProfileService>(context, listen: false);
     final allergies = profileService.allergies;
+    final sensitivity = profileService.allergyAlertSensitivity ;
     _mapAllergiesToPrefs(allergies);
+    _allergyAlertSensitivity = sensitivity;
   }
 
   void _mapAllergiesToPrefs(List<String> allergies) {
@@ -41,6 +46,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
 
   Future<void> _savePreferences() async {
     final profileService = Provider.of<UserProfileService>(context, listen: false);
+
     List<String> newAllergies = [];
     if (_avoidNuts) newAllergies.addAll(['nuts', 'peanuts']);
     if (_avoidDairy) newAllergies.addAll(['dairy', 'milk']);
@@ -49,6 +55,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     newAllergies.addAll(_additionalAllergies);
 
     await profileService.updateAllergies(newAllergies.toSet().toList());
+    await profileService.updateAllergyAlertSensitivity(_allergyAlertSensitivity);
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Preferences saved successfully!')),
@@ -56,7 +63,15 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   }
 
   @override
+  void dispose() {
+    _customAllergyController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final allergyService = Provider.of<AllergyService>(context, listen: false);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dietary Preferences'),
@@ -88,10 +103,48 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
             onChanged: (val) => setState(() => _isVegan = val ?? false),
           ),
           const Divider(),
+          const Text('Allergy Alert Sensitivity'),
+          ListTile(
+            title: const Text('All Alerts'),
+            leading: Radio<String>(
+              value: 'all',
+              groupValue: _allergyAlertSensitivity,
+              onChanged: (val) => setState(() => _allergyAlertSensitivity = val ?? 'moderate+'),
+            ),
+            trailing: Tooltip(
+              message: 'See all allergy alerts regardless of severity.',
+              child: const Icon(Icons.info_outline),
+            ),
+          ),
+          ListTile(
+            title: const Text('Moderate and Severe Alerts'),
+            leading: Radio<String>(
+              value: 'moderate+',
+              groupValue: _allergyAlertSensitivity,
+              onChanged: (val) => setState(() => _allergyAlertSensitivity = val ?? 'moderate+'),
+            ),
+            trailing: Tooltip(
+              message: allergyService.getSeverityDescription('moderate'),
+              child: const Icon(Icons.info_outline),
+            ),
+          ),
+          ListTile(
+            title: const Text('Severe Alerts Only'),
+            leading: Radio<String>(
+              value: 'severe+',
+              groupValue: _allergyAlertSensitivity,
+              onChanged: (val) => setState(() => _allergyAlertSensitivity = val ?? 'moderate+'),
+            ),
+            trailing: Tooltip(
+              message: allergyService.getSeverityDescription('severe'),
+              child: const Icon(Icons.info_outline),
+            ),
+          ),
+          const Divider(),
           const Text('Additional Allergies (comma separated)'),
           TextField(
             controller: _customAllergyController,
-            decoration: InputDecoration(hintText: 'Sesame, Mustard etc.'),
+            decoration: const InputDecoration(hintText: 'Sesame, Mustard etc.'),
             onSubmitted: (val) {
               if (val.isNotEmpty) {
                 setState(() {
@@ -105,10 +158,12 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
           ),
           Wrap(
             spacing: 8,
-            children: _additionalAllergies.map((a) => Chip(
-              label: Text(a),
-              onDeleted: () => setState(() => _additionalAllergies.remove(a)),
-            )).toList(),
+            children: _additionalAllergies
+                .map((a) => Chip(
+                      label: Text(a),
+                      onDeleted: () => setState(() => _additionalAllergies.remove(a)),
+                    ))
+                .toList(),
           ),
         ],
       ),

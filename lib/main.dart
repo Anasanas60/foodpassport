@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+// Import FoodItem model with alias to avoid conflicts
+import 'models/food_item.dart' as models;
+
 import 'services/user_profile_service.dart';
 import 'services/food_state_service.dart';
+
 import 'user_form_screen.dart';
 import 'camera_screen.dart';
-import 'food_journal_screen.dart';
+import 'food_journal_screen.dart'; // Import normally for FoodJournalScreen
 import 'recipe_screen.dart';
 import 'cultural_insights_screen.dart';
 import 'map_screen.dart';
 import 'emergency_alert_screen.dart';
 import 'preferences_screen.dart';
-import 'models/food_item.dart';
+
 
 void main() {
   runApp(const FoodPassportApp());
@@ -43,19 +48,20 @@ class FoodPassportApp extends StatelessWidget {
           '/emergency': (context) {
             final foodState = Provider.of<FoodStateService>(context, listen: false);
             return EmergencyAlertScreen(
-              foodItem: foodState.currentFoodItem ?? FoodItemExtensions.fromRecognitionMap(
-                {
-                  'foodName': 'Emergency Food',
-                  'calories': 0.0,
-                  'protein': 0.0,
-                  'carbs': 0.0,
-                  'fat': 0.0,
-                  'confidence': 0.0,
-                  'detectedAllergens': [],
-                  'source': 'emergency'
-                },
-                imagePath: '',
-              ),
+              foodItem: foodState.currentFoodItem ??
+                  models.FoodItem.fromRecognitionMap(
+                    {
+                      'foodName': 'Emergency Food',
+                      'calories': 0.0,
+                      'protein': 0.0,
+                      'carbs': 0.0,
+                      'fat': 0.0,
+                      'confidence': 0.0,
+                      'detectedAllergens': [],
+                      'source': 'emergency',
+                    },
+                    imagePath: '',
+                  ),
             );
           },
           '/preferences': (context) => const PreferencesScreen(),
@@ -195,7 +201,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRecentFoodCard(BuildContext context, FoodItem foodItem) {
+  Widget _buildRecentFoodCard(BuildContext context, models.FoodItem foodItem) {
     return Card(
       elevation: 3,
       child: Padding(
@@ -235,25 +241,6 @@ class HomeScreen extends StatelessWidget {
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, size: 32, color: Colors.blue), const SizedBox(height: 8), Text(title, textAlign: TextAlign.center)]),
         ),
       ),
-    );
-  }
-}
-
-// Extension to add 'fromRecognitionMap' factory on FoodItem
-extension FoodItemExtensions on FoodItem {
-  static FoodItem fromRecognitionMap(Map<String, dynamic> map, {required String imagePath}) {
-    return FoodItem(
-      id: map['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      name: map['foodName'] ?? 'Detected Food',
-      confidenceScore: (map['confidence'] ?? 0.5).toDouble(),
-      calories: (map['calories'] ?? 0.0).toDouble(),
-      protein: (map['protein'] ?? 0.0).toDouble(),
-      carbs: (map['carbs'] ?? 0.0).toDouble(),
-      fat: (map['fat'] ?? 0.0).toDouble(),
-      source: map['source'] ?? 'fallback',
-      detectedAllergens: List<String>.from(map['detectedAllergens'] ?? []),
-      imagePath: imagePath,
-      timestamp: DateTime.now(),
     );
   }
 }

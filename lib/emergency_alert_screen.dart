@@ -12,7 +12,7 @@ class EmergencyAlertScreen extends StatelessWidget {
     final allergens = foodItem.detectedAllergens;
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.errorContainer.withOpacity(0.1),
+      backgroundColor: theme.colorScheme.errorContainer.withValues(alpha: 0.1),
       appBar: AppBar(
         title: const Text('🚨 EMERGENCY ALERT'),
         backgroundColor: theme.colorScheme.error,

@@ -1,235 +1,114 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 
-import '../services/food_state_service.dart';
-import '../models/food_item.dart';
-
-class FoodJournalScreen extends StatefulWidget {
-  const FoodJournalScreen({super.key});
-
-  @override
-  State<FoodJournalScreen> createState() => _FoodJournalScreenState();
-}
-
-class _FoodJournalScreenState extends State<FoodJournalScreen> {
-  final ImagePicker _picker = ImagePicker();
+class FoodJournalScreen extends StatelessWidget {
+  const FoodJournalScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final foodState = Provider.of<FoodStateService>(context);
-    final List<FoodItem> foodEntries = foodState.foodHistory;
-
+    // Replace below with your actual UI and logic
     return Scaffold(
       appBar: AppBar(
         title: const Text('Food Journal'),
       ),
-      body: foodEntries.isEmpty
-          ? _buildEmptyState(theme)
-          : _buildFoodList(theme, foodEntries, foodState),
-    );
-  }
-
-  Widget _buildEmptyState(ThemeData theme) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.restaurant_menu,
-            size: 64,
-            color: theme.colorScheme.onSurface.withAlpha(128),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No Food Entries Yet',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              color: theme.colorScheme.onSurface.withAlpha(179),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Scan some food to start your journal!',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withAlpha(128),
-            ),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.pushNamed(context, '/camera'),
-            icon: const Icon(Icons.camera_alt),
-            label: const Text('Scan Your First Food'),
-          ),
-        ],
+      body: const Center(
+        child: Text('Food Journal Screen Content'),
       ),
     );
   }
+}
 
-  Widget _buildFoodList(
-      ThemeData theme, List<FoodItem> foodEntries, FoodStateService foodState) {
-    return ListView.builder(
-      itemCount: foodEntries.length,
-      itemBuilder: (context, index) {
-        final foodItem = foodEntries[index];
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: ListTile(
-            leading: foodItem.photoPath != null
-                ? Image.file(File(foodItem.photoPath!), width: 50, height: 50, fit: BoxFit.cover)
-                : Icon(Icons.fastfood, size: 40, color: theme.colorScheme.primary),
-            title: Text(foodItem.name),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('${foodItem.calories.round()} cal • Allergens: ${foodItem.detectedAllergens.join(', ')}'),
-                if (foodItem.notes != null && foodItem.notes!.isNotEmpty)
-                  Text('Notes: ${foodItem.notes}', maxLines: 1, overflow: TextOverflow.ellipsis),
-              ],
-            ),
-            trailing: IconButton(
-              icon: Icon(Icons.delete, color: theme.colorScheme.error),
-              onPressed: () => _showDeleteDialog(context, foodItem, foodState, index),
-            ),
-            onTap: () async {
-              await _showEditEntryDialog(context, foodItem, foodState, index);
-              setState(() {});
-            },
-          ),
-        );
-      },
+class FoodItem {
+  final String id;
+  final String name;
+  final double confidenceScore;
+  final double calories;
+  final double protein;
+  final double carbs;
+  final double fat;
+  final String source;
+  final List<String> detectedAllergens;
+  final String imagePath;
+  final DateTime timestamp;
+
+  final Position? position;
+  final String? area;
+
+  // Newly added nullable fields
+  final String? photoPath;
+  final String? notes;
+  final String? cuisineType;
+  final List<String>? ingredients;
+  final Map<String, dynamic>? nutritionInfo;
+  final String? description;
+  final bool? isVerified;
+
+  FoodItem({
+    required this.id,
+    required this.name,
+    required this.confidenceScore,
+    required this.calories,
+    required this.protein,
+    required this.carbs,
+    required this.fat,
+    required this.source,
+    required this.detectedAllergens,
+    required this.imagePath,
+    required this.timestamp,
+    this.position,
+    this.area,
+    this.photoPath,
+    this.notes,
+    this.cuisineType,
+    this.ingredients,
+    this.nutritionInfo,
+    this.description,
+    this.isVerified,
+  });
+
+  FoodItem copyWith({
+    String? id,
+    String? name,
+    double? confidenceScore,
+    double? calories,
+    double? protein,
+    double? carbs,
+    double? fat,
+    String? source,
+    List<String>? detectedAllergens,
+    String? imagePath,
+    DateTime? timestamp,
+    Position? position,
+    String? area,
+    String? photoPath,
+    String? notes,
+    String? cuisineType,
+    List<String>? ingredients,
+    Map<String, dynamic>? nutritionInfo,
+    String? description,
+    bool? isVerified,
+  }) {
+    return FoodItem(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      confidenceScore: confidenceScore ?? this.confidenceScore,
+      calories: calories ?? this.calories,
+      protein: protein ?? this.protein,
+      carbs: carbs ?? this.carbs,
+      fat: fat ?? this.fat,
+      source: source ?? this.source,
+      detectedAllergens: detectedAllergens ?? this.detectedAllergens,
+      imagePath: imagePath ?? this.imagePath,
+      timestamp: timestamp ?? this.timestamp,
+      position: position ?? this.position,
+      area: area ?? this.area,
+      photoPath: photoPath ?? this.photoPath,
+      notes: notes ?? this.notes,
+      cuisineType: cuisineType ?? this.cuisineType,
+      ingredients: ingredients ?? this.ingredients,
+      nutritionInfo: nutritionInfo ?? this.nutritionInfo,
+      description: description ?? this.description,
+      isVerified: isVerified ?? this.isVerified,
     );
-  }
-
-  Future<void> _showDeleteDialog(
-      BuildContext context, FoodItem foodItem, FoodStateService foodState, int index) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Food Entry?'),
-        content: Text('Are you sure you want to delete "${foodItem.name}" from your journal?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      foodState.removeFromHistory(index);
-      setState(() {});
-    }
-  }
-
-  Future<void> _showEditEntryDialog(BuildContext context, FoodItem foodItem, FoodStateService foodState, int index) async {
-    final TextEditingController notesController = TextEditingController(text: foodItem.notes);
-    String? photoPath = foodItem.photoPath;
-
-    await showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            title: Text('Edit Notes & Photo\n${foodItem.name}'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (photoPath != null)
-                    Image.file(File(photoPath!), height: 150, fit: BoxFit.cover),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.camera_alt),
-                        onPressed: () async {
-                          final XFile? picked = await _picker.pickImage(source: ImageSource.camera);
-                          if (picked != null) {
-                            setDialogState(() {
-                              photoPath = picked.path;
-                            });
-                          }
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.photo_library),
-                        onPressed: () async {
-                          final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
-                          if (picked != null) {
-                            setDialogState(() {
-                              photoPath = picked.path;
-                            });
-                          }
-                        },
-                      ),
-                      if (photoPath != null)
-                        IconButton(
-                          icon: const Icon(Icons.delete_forever),
-                          onPressed: () {
-                            setDialogState(() {
-                              photoPath = null;
-                            });
-                          },
-                        ),
-                    ],
-                  ),
-                  TextField(
-                    controller: notesController,
-                    decoration: const InputDecoration(labelText: 'Notes'),
-                    maxLines: 3,
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  final updatedItem = FoodItem(
-                    id: foodItem.id,
-                    name: foodItem.name,
-                    confidenceScore: foodItem.confidenceScore,
-                    calories: foodItem.calories,
-                    protein: foodItem.protein,
-                    carbs: foodItem.carbs,
-                    fat: foodItem.fat,
-                    source: foodItem.source,
-                    detectedAllergens: foodItem.detectedAllergens,
-                    imagePath: foodItem.imagePath,
-                    timestamp: foodItem.timestamp,
-                    photoPath: photoPath,
-                    notes: notesController.text.trim(),
-                    cuisineType: foodItem.cuisineType,
-                    ingredients: foodItem.ingredients,
-                    nutritionInfo: foodItem.nutritionInfo,
-                    description: foodItem.description,
-                    isVerified: foodItem.isVerified,
-                    area: foodItem.area,
-                    position: foodItem.position,
-                  );
-
-                  foodState.updateFoodAt(index, updatedItem);
-                  Navigator.pop(context);
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-
-    setState(() {});
   }
 }

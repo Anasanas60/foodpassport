@@ -1,9 +1,31 @@
+enum AllergySeverity {
+  mild('mild'),
+  moderate('moderate'),
+  severe('severe');
+
+  final String value;
+  const AllergySeverity(this.value);
+
+  static AllergySeverity fromString(String severity) {
+    switch (severity.toLowerCase()) {
+      case 'mild':
+        return AllergySeverity.mild;
+      case 'moderate':
+        return AllergySeverity.moderate;
+      case 'severe':
+        return AllergySeverity.severe;
+      default:
+        return AllergySeverity.moderate;
+    }
+  }
+}
+
 class Allergy {
   final String id;
   final String name;
   final String category;
   final String description;
-  final String severity;
+  final AllergySeverity severity;
   final bool isCommon;
 
   Allergy({
@@ -21,7 +43,7 @@ class Allergy {
       name: json['name'] ?? '',
       category: json['category'] ?? 'other',
       description: json['description'] ?? '',
-      severity: json['severity'] ?? 'moderate',
+      severity: AllergySeverity.fromString(json['severity'] ?? 'moderate'),
       isCommon: json['isCommon'] ?? false,
     );
   }
@@ -32,7 +54,7 @@ class Allergy {
       'name': name,
       'category': category,
       'description': description,
-      'severity': severity,
+      'severity': severity.value,
       'isCommon': isCommon,
     };
   }

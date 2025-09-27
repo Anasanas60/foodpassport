@@ -44,8 +44,8 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              theme.colorScheme.primaryContainer.withOpacity(0.3),
-              theme.colorScheme.secondaryContainer.withOpacity(0.1),
+              theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+              theme.colorScheme.secondaryContainer.withValues(alpha: 0.1),
             ],
           ),
         ),
@@ -78,20 +78,20 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
           Icon(
             Icons.restaurant_menu,
             size: 64,
-            color: theme.colorScheme.onSurface.withOpacity(0.5),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           Text(
             'No Food Entries Yet',
             style: theme.textTheme.headlineSmall?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.7),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Scan some food to start your journal!',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withOpacity(0.5),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
             ),
           ),
           const SizedBox(height: 20),
@@ -144,7 +144,7 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
         Text(
           label,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurface.withOpacity(0.6),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
       ],
@@ -205,7 +205,7 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
             Text(
               'Scanned on ${_formatDate(foodItem.timestamp)}',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             if (foodItem.detectedAllergens.isNotEmpty) ...[

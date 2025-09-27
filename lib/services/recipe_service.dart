@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/recipe_data.dart'; // ADDED: Import RecipeData
@@ -16,7 +16,7 @@ class RecipeService {
           ?? await _tryMealDbRecipe(dishName)
           ?? await _generateFallbackRecipe(dishName, cuisineType, dietaryRestrictions);
       
-      print('✅ Recipe found: ${recipe?.name}');
+      print('✅ Recipe found: ${recipe.name}');
       return recipe;
     } catch (e) {
       print('❌ Recipe service error: $e');

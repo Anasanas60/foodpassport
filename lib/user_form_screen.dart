@@ -97,7 +97,7 @@ class _UserFormScreenState extends State<UserFormScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _selectedLanguage,
+                initialValue: _selectedLanguage,
                 items: ['English', 'Spanish', 'French', 'German', 'Chinese']
                     .map((lang) => DropdownMenuItem(value: lang, child: Text(lang)))
                     .toList(),

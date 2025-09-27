@@ -6,6 +6,7 @@ class UserProfile {
   final String? dietaryPreference;
   final String? country;
   final String? language;
+  final String allergyAlertSensitivity; // Added field
 
   UserProfile({
     this.id,
@@ -15,6 +16,7 @@ class UserProfile {
     this.dietaryPreference,
     this.country,
     this.language,
+    this.allergyAlertSensitivity = 'moderate+', // Default value
   });
 
   // Convert to map for storage
@@ -27,6 +29,7 @@ class UserProfile {
       'dietary_preference': dietaryPreference,
       'country': country,
       'language': language,
+      'allergy_alert_sensitivity': allergyAlertSensitivity,
     };
   }
 
@@ -40,6 +43,7 @@ class UserProfile {
       dietaryPreference: map['dietary_preference'],
       country: map['country'],
       language: map['language'],
+      allergyAlertSensitivity: map['allergy_alert_sensitivity'] ?? 'moderate+',
     );
   }
 
@@ -52,6 +56,7 @@ class UserProfile {
     String? dietaryPreference,
     String? country,
     String? language,
+    String? allergyAlertSensitivity,
   }) {
     return UserProfile(
       id: id ?? this.id,
@@ -61,6 +66,7 @@ class UserProfile {
       dietaryPreference: dietaryPreference ?? this.dietaryPreference,
       country: country ?? this.country,
       language: language ?? this.language,
+      allergyAlertSensitivity: allergyAlertSensitivity ?? this.allergyAlertSensitivity,
     );
   }
 }

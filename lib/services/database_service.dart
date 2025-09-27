@@ -18,13 +18,19 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'food_passport.db');
     return await openDatabase(
       path,
-      version: 2, // ✅ Increased version number for schema update
+      version: 2,
       onCreate: _createTables,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute(
+            "ALTER TABLE user_profile ADD COLUMN allergy_alert_sensitivity TEXT DEFAULT 'moderate+'",
+          );
+        }
+      },
     );
   }
 
   Future<void> _createTables(Database db, int version) async {
-    // Food entries table - matches your current food recognition structure
     await db.execute('''
       CREATE TABLE food_entries(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,7 +50,6 @@ class DatabaseService {
       )
     ''');
 
-    // Passport stamps table for gamification
     await db.execute('''
       CREATE TABLE passport_stamps(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -57,7 +62,6 @@ class DatabaseService {
       )
     ''');
 
-    // User statistics table
     await db.execute('''
       CREATE TABLE user_stats(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -68,23 +72,22 @@ class DatabaseService {
         last_entry_date INTEGER
       )
     ''');
-    
-    // ✅ NEW: User profile table
+
     await db.execute('''
       CREATE TABLE user_profile(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
         age INTEGER,
-        allergies TEXT, -- Will store JSON array of allergies
+        allergies TEXT,
         dietary_preference TEXT,
         country TEXT,
         language TEXT,
+        allergy_alert_sensitivity TEXT,
         created_at INTEGER DEFAULT (strftime('%s', 'now')),
         updated_at INTEGER DEFAULT (strftime('%s', 'now'))
       )
     ''');
 
-    // Initialize user stats with default values
     await db.insert('user_stats', {
       'total_foods_tried': 0,
       'current_streak': 0,
@@ -92,19 +95,19 @@ class DatabaseService {
       'total_calories': 0.0,
       'last_entry_date': null,
     });
-    
-    // ✅ Initialize user profile with default values
+
     await db.insert('user_profile', {
       'name': null,
       'age': null,
-      'allergies': '[]', // Empty JSON array
+      'allergies': '[]',
       'dietary_preference': null,
       'country': null,
       'language': null,
+      'allergy_alert_sensitivity': 'moderate+',
     });
   }
 
-  // Food entries methods
+  // Food entry methods
   Future<int> insertFoodEntry(Map<String, dynamic> entry) async {
     final db = await database;
     return await db.insert('food_entries', entry);
@@ -120,7 +123,24 @@ class DatabaseService {
     return await db.delete('food_entries', where: 'id = ?', whereArgs: [id]);
   }
 
-  // Passport stamps methods
+  // User stats methods
+  Future<Map<String, dynamic>?> getUserStats() async {
+    final db = await database;
+    final results = await db.query('user_stats', limit: 1);
+    return results.isNotEmpty ? results.first : null;
+  }
+
+  Future<int> updateUserStats(Map<String, dynamic> stats) async {
+    final db = await database;
+    final existing = await getUserStats();
+    if (existing == null) {
+      return await db.insert('user_stats', stats);
+    } else {
+      return await db.update('user_stats', stats, where: 'id = ?', whereArgs: [existing['id']]);
+    }
+  }
+
+  // Passport stamps
   Future<int> addPassportStamp(Map<String, dynamic> stamp) async {
     final db = await database;
     return await db.insert('passport_stamps', stamp);
@@ -131,24 +151,7 @@ class DatabaseService {
     return await db.query('passport_stamps', orderBy: 'earned_date DESC');
   }
 
-  // User stats methods
-  Future<void> updateUserStats(Map<String, dynamic> stats) async {
-    final db = await database;
-    final existing = await getUserStats();
-    if (existing == null) {
-      await db.insert('user_stats', stats);
-    } else {
-      await db.update('user_stats', stats, where: 'id = ?', whereArgs: [existing['id']]);
-    }
-  }
-
-  Future<Map<String, dynamic>?> getUserStats() async {
-    final db = await database;
-    final results = await db.query('user_stats', limit: 1);
-    return results.isNotEmpty ? results.first : null;
-  }
-
-  // ✅ NEW: User profile methods
+  // User profile
   Future<Map<String, dynamic>?> getUserProfile() async {
     final db = await database;
     final results = await db.query('user_profile', limit: 1);
@@ -159,30 +162,23 @@ class DatabaseService {
     final db = await database;
     final existing = await getUserProfile();
     profile['updated_at'] = DateTime.now().millisecondsSinceEpoch;
-    
+
     if (existing == null) {
       return await db.insert('user_profile', profile);
     } else {
-      return await db.update(
-        'user_profile', 
-        profile, 
-        where: 'id = ?', 
-        whereArgs: [existing['id']]
-      );
+      return await db.update('user_profile', profile, where: 'id = ?', whereArgs: [existing['id']]);
     }
   }
 
-  // Reset database method
+  // Reset database
   Future<void> resetDatabase() async {
     final db = await database;
     await db.transaction((txn) async {
-      // Clear all tables
       await txn.delete('food_entries');
       await txn.delete('passport_stamps');
       await txn.delete('user_stats');
-      await txn.delete('user_profile'); // ✅ Added user_profile
-      
-      // Reinitialize with default user stats
+      await txn.delete('user_profile');
+
       await txn.insert('user_stats', {
         'total_foods_tried': 0,
         'current_streak': 0,
@@ -190,8 +186,7 @@ class DatabaseService {
         'total_calories': 0.0,
         'last_entry_date': null,
       });
-      
-      // ✅ Reinitialize with default user profile
+
       await txn.insert('user_profile', {
         'name': null,
         'age': null,
@@ -199,12 +194,11 @@ class DatabaseService {
         'dietary_preference': null,
         'country': null,
         'language': null,
+        'allergy_alert_sensitivity': 'moderate+',
       });
     });
-    print('✅ Database reset successfully');
   }
 
-  // Close database
   Future<void> close() async {
     if (_database != null) {
       await _database!.close();

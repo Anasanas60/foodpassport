@@ -13,6 +13,9 @@ class UserProfileService with ChangeNotifier {
   String? _dietaryPreference;
   String? _country;
   String? _language;
+  
+  // Allergy alert sensitivity preference: 'all', 'moderate+', 'severe+'
+  String _allergyAlertSensitivity = 'moderate+';
 
   // Getters
   String? get name => _name;
@@ -21,11 +24,11 @@ class UserProfileService with ChangeNotifier {
   String? get dietaryPreference => _dietaryPreference;
   String? get country => _country;
   String? get language => _language;
+  String get allergyAlertSensitivity => _allergyAlertSensitivity;
 
-  // NEW: Getter that returns a complete UserProfile object
+  // UserProfile getter convenience for easy access
   UserProfile? get userProfile {
     if (_name == null && _age == null) return null;
-    
     return UserProfile(
       name: _name,
       age: _age,
@@ -33,36 +36,36 @@ class UserProfileService with ChangeNotifier {
       dietaryPreference: _dietaryPreference,
       country: _country,
       language: _language,
+      allergyAlertSensitivity: _allergyAlertSensitivity,
     );
   }
 
-  // Load user profile from database
+  // Load user profile from database, including allergy alert sensitivity
   Future<void> loadUserProfile() async {
     try {
       final profile = await _dbService.getUserProfile();
       if (profile != null) {
         _name = profile['name'];
         _age = profile['age'];
-        
-        // Parse allergies from JSON string
         if (profile['allergies'] != null) {
           final allergiesJson = json.decode(profile['allergies']);
           _allergies = List<String>.from(allergiesJson);
         }
-        
         _dietaryPreference = profile['dietary_preference'];
         _country = profile['country'];
         _language = profile['language'];
-        
+
+        _allergyAlertSensitivity = profile['allergy_alert_sensitivity'] ?? 'moderate+';
+
         notifyListeners();
-        print('✅ User profile loaded successfully');
+        debugPrint('✅ User profile loaded successfully');
       }
     } catch (e) {
-      print('❌ Error loading user profile: $e');
+      debugPrint('❌ Error loading user profile: $e');
     }
   }
 
-  // Update entire profile
+  // Update entire profile, including allergy alert sensitivity
   Future<void> updateProfile({
     String? name,
     int? age,
@@ -70,6 +73,7 @@ class UserProfileService with ChangeNotifier {
     String? dietaryPreference,
     String? country,
     String? language,
+    String? allergyAlertSensitivity,
   }) async {
     _name = name ?? _name;
     _age = age ?? _age;
@@ -77,12 +81,21 @@ class UserProfileService with ChangeNotifier {
     _dietaryPreference = dietaryPreference ?? _dietaryPreference;
     _country = country ?? _country;
     _language = language ?? _language;
+    _allergyAlertSensitivity = allergyAlertSensitivity ?? _allergyAlertSensitivity;
 
     await _saveToDatabase();
     notifyListeners();
   }
 
-  // Update individual fields
+  // Update allergy alert sensitivity individually
+  Future<void> updateAllergyAlertSensitivity(String sensitivity) async {
+    _allergyAlertSensitivity = sensitivity;
+    await _saveToDatabase();
+    notifyListeners();
+  }
+
+  // Update other profile fields (examples)
+
   Future<void> updateName(String name) async {
     _name = name;
     await _saveToDatabase();
@@ -119,88 +132,21 @@ class UserProfileService with ChangeNotifier {
     notifyListeners();
   }
 
-  // Save to database
+  // Save all profile fields to database including allergy alert sensitivity
   Future<void> _saveToDatabase() async {
     try {
       await _dbService.updateUserProfile({
         'name': _name,
         'age': _age,
-        'allergies': json.encode(_allergies), // Store as JSON
+        'allergies': json.encode(_allergies), // Store list as JSON string
         'dietary_preference': _dietaryPreference,
         'country': _country,
         'language': _language,
+        'allergy_alert_sensitivity': _allergyAlertSensitivity,
       });
-      print('✅ User profile saved successfully');
+      debugPrint('✅ User profile saved successfully');
     } catch (e) {
-      print('❌ Error saving user profile: $e');
+      debugPrint('❌ Error saving user profile: $e');
     }
-  }
-
-  // Check if profile is complete
-  bool get isProfileComplete {
-    return _name != null && _name!.isNotEmpty && _age != null;
-  }
-
-  // Clear profile data (for logout/reset)
-  Future<void> clearProfile() async {
-    _name = null;
-    _age = null;
-    _allergies = [];
-    _dietaryPreference = null;
-    _country = null;
-    _language = null;
-    
-    await _saveToDatabase();
-    notifyListeners();
-  }
-
-  // Check if user has any allergies
-  bool get hasAllergies => _allergies.isNotEmpty;
-
-  // Get profile summary for display
-  Map<String, dynamic> get profileSummary {
-    return {
-      'name': _name ?? 'Not set',
-      'age': _age ?? 'Not set',
-      'allergyCount': _allergies.length,
-      'dietaryPreference': _dietaryPreference ?? 'Not set',
-      'country': _country ?? 'Not set',
-      'language': _language ?? 'Not set',
-    };
-  }
-
-  // NEW: Check if food contains user's allergens
-  bool containsAllergens(List<String> foodAllergens) {
-    if (_allergies.isEmpty || foodAllergens.isEmpty) return false;
-    return foodAllergens.any((allergen) => _allergies.contains(allergen));
-  }
-
-  // NEW: Get matching allergens between user and food
-  List<String> getMatchingAllergens(List<String> foodAllergens) {
-    return foodAllergens.where((allergen) => _allergies.contains(allergen)).toList();
-  }
-
-  // NEW: Initialize with default values for testing
-  void initializeWithDefaults() {
-    _name = 'Food Explorer';
-    _age = 25;
-    _allergies = ['nuts', 'shellfish'];
-    _dietaryPreference = 'Vegetarian';
-    _country = 'Thailand';
-    _language = 'English';
-    notifyListeners();
-  }
-
-  // NEW: Check if user profile is empty
-  bool get isEmpty {
-    return _name == null && _age == null && _allergies.isEmpty;
-  }
-
-  // NEW: Get user initials for avatar
-  String get initials {
-    if (_name == null || _name!.isEmpty) return 'FP';
-    final names = _name!.split(' ');
-    if (names.length == 1) return _name!.substring(0, 2).toUpperCase();
-    return '${names[0][0]}${names[names.length - 1][0]}'.toUpperCase();
   }
 }
