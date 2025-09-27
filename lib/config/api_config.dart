@@ -33,16 +33,16 @@
     return spoonacularApiKey.isNotEmpty && spoonacularApiKey != 'YOUR_SPOONACULAR_API_KEY';
   }
   
-  // API Endpoint Builder
-  static String buildSpoonacularUrl(String endpoint, {Map<String, String>? params}) {
-    var url = '=';
-    if (params != null) {
-      params.forEach((key, value) {
-        url += '&=';
-      });
-    }
-    return url;
+  // Replace the broken method with:
+static String buildSpoonacularUrl(String endpoint, {Map<String, String>? params}) {
+  var url = '$spoonacularBaseUrl$endpoint?apiKey=$spoonacularApiKey';
+  if (params != null) {
+    params.forEach((key, value) {
+      url += '&$key=${Uri.encodeComponent(value)}';
+    });
   }
+  return url;
+}
 }
 
 // Separate class for API Usage Stats

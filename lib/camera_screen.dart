@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../services/user_profile_service.dart';
-import '../services/food_state_service.dart'; 
+import '../services/food_state_service.dart';
 import '../models/food_item.dart' as models;
 import 'recipe_screen.dart';
 import 'emergency_alert_screen.dart';
@@ -73,14 +73,9 @@ class _CameraScreenState extends State<CameraScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(_getStatusTitle(),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      )),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 4),
-                  Text(_currentStatus,
-                      style:
-                          TextStyle(color: Colors.grey[600], fontSize: 14)),
+                  Text(_currentStatus, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
                 ],
               ),
             ),
@@ -103,14 +98,8 @@ class _CameraScreenState extends State<CameraScreen> {
         children: [
           Icon(Icons.photo_camera, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
-          Text(
-            'Food Camera Preview',
-            style: TextStyle(color: Colors.grey[600], fontSize: 16),
-          ),
-          Text(
-            'Take a clear photo of your food',
-            style: TextStyle(color: Colors.grey[500], fontSize: 12),
-          ),
+          Text('Food Camera Preview', style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+          Text('Take a clear photo of your food', style: TextStyle(color: Colors.grey[500], fontSize: 12)),
         ],
       ),
     );
@@ -149,21 +138,12 @@ class _CameraScreenState extends State<CameraScreen> {
   Widget _buildProcessingIndicator() {
     return Column(
       children: [
-        const CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
-          strokeWidth: 6,
-        ),
+        const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.green), strokeWidth: 6),
         const SizedBox(height: 20),
-        Text(
-          'Analyzing your food...',
-          style: TextStyle(color: Colors.grey[600], fontSize: 16),
-        ),
+        Text('Analyzing your food...', style: TextStyle(color: Colors.grey[600], fontSize: 16)),
         const SizedBox(height: 8),
-        Text(
-          'Identifying ingredients, nutrition, and allergens',
-          style: TextStyle(color: Colors.grey[500], fontSize: 12),
-          textAlign: TextAlign.center,
-        ),
+        Text('Identifying ingredients, nutrition, and allergens',
+            style: TextStyle(color: Colors.grey[500], fontSize: 12), textAlign: TextAlign.center),
       ],
     );
   }
@@ -173,44 +153,30 @@ class _CameraScreenState extends State<CameraScreen> {
       color: Colors.blue[50],
       child: Padding(
         padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.lightbulb_outline, color: Colors.blue[700], size: 16),
-                const SizedBox(width: 8),
-                Text(
-                  'Tips for better recognition:',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue[700],
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(Icons.lightbulb_outline, color: Colors.blue[700], size: 16),
+            const SizedBox(width: 8),
             Text(
-              '• Take photos in good lighting\n'
-              '• Capture the entire dish clearly\n'
-              '• Avoid blurry or dark images\n'
-              '• Include unique ingredients if possible',
-              style: TextStyle(color: Colors.blue[600], fontSize: 11, height: 1.4),
+              'Tips for better recognition:',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[700], fontSize: 12),
             ),
-          ],
-        ),
+          ]),
+          const SizedBox(height: 8),
+          Text(
+            '• Take photos in good lighting\n'
+            '• Capture the entire dish clearly\n'
+            '• Avoid blurry or dark images\n'
+            '• Include unique ingredients if possible',
+            style: TextStyle(color: Colors.blue[600], fontSize: 11, height: 1.4),
+          ),
+        ]),
       ),
     );
   }
 
   Future<void> _takePhoto() async {
-    final XFile? image = await _imagePicker.pickImage(
-      source: ImageSource.camera,
-      maxWidth: 1200,
-      maxHeight: 1200,
-      imageQuality: 85,
-    );
+    final XFile? image = await _imagePicker.pickImage(source: ImageSource.camera, maxWidth: 1200, maxHeight: 1200, imageQuality: 85);
 
     if (image != null) {
       await _processImage(image);
@@ -218,12 +184,7 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _pickFromGallery() async {
-    final XFile? image = await _imagePicker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1200,
-      maxHeight: 1200,
-      imageQuality: 85,
-    );
+    final XFile? image = await _imagePicker.pickImage(source: ImageSource.gallery, maxWidth: 1200, maxHeight: 1200, imageQuality: 85);
 
     if (image != null) {
       await _processImage(image);
@@ -269,12 +230,6 @@ class _CameraScreenState extends State<CameraScreen> {
       if (mounted) {
         _showErrorDialog('Failed to analyze food image: $e');
       }
-    } finally {
-      if (mounted && !_isProcessing) {
-        setState(() {
-          _isProcessing = false;
-        });
-      }
     }
   }
 
@@ -283,18 +238,13 @@ class _CameraScreenState extends State<CameraScreen> {
     final bytes = await XFile(imagePath).readAsBytes();
     final base64Image = base64Encode(bytes);
 
-    final response = await http.post(url, body: jsonEncode({
-      'image': {'data': base64Image},
-      'model': 'food-recognition'
-    }), headers: {
-      'Content-Type': 'application/json',
-    });
+    final response = await http.post(url,
+        body: jsonEncode({'image': {'data': base64Image}, 'model': 'food-recognition'}),
+        headers: {'Content-Type': 'application/json'});
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = jsonDecode(response.body);
-      final dishName = (data['classifiers'] != null && data['classifiers'].isNotEmpty)
-          ? data['classifiers'][0]['tagName'] ?? 'Unknown Dish'
-          : 'Unknown Dish';
+      final dishName = (data['classifiers'] != null && data['classifiers'].isNotEmpty) ? data['classifiers'][0]['tagName'] ?? 'Unknown Dish' : 'Unknown Dish';
 
       final ingredientsList = <String>[];
       if (data['ingredients'] != null && data['ingredients'] is List) {
@@ -323,12 +273,7 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void _navigateToRecipeScreen(models.FoodItem foodItem) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => RecipeScreen(dishName: foodItem.name),
-      ),
-    ).then((_) {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => RecipeScreen(dishName: foodItem.name))).then((_) {
       setState(() {
         _isProcessing = false;
         _currentStatus = 'Ready to scan next food';
@@ -337,12 +282,7 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void _navigateToEmergencyScreen(models.FoodItem foodItem) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EmergencyAlertScreen(foodItem: foodItem),
-      ),
-    ).then((_) {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => EmergencyAlertScreen(foodItem: foodItem))).then((_) {
       setState(() {
         _isProcessing = false;
         _currentStatus = 'Allergy warning handled';
@@ -356,9 +296,7 @@ class _CameraScreenState extends State<CameraScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Analysis Failed'),
         content: Text(message),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
-        ],
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
       ),
     );
   }
@@ -369,25 +307,17 @@ class _CameraScreenState extends State<CameraScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Food Scanning Help'),
         content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildHelpItem('Camera', 'Take a fresh photo of your food'),
-              _buildHelpItem('Gallery', 'Select an existing food photo'),
-              _buildHelpItem('Analysis', 'We identify food, nutrients, and allergens'),
-              _buildHelpItem('Safety', 'Automatic allergy warnings based on your profile'),
-              const SizedBox(height: 16),
-              Text(
-                'Make sure your dietary preferences are set in the app settings for accurate allergy detection.',
-                style: TextStyle(color: Colors.grey[600], fontSize: 12),
-              ),
-            ],
-          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+            _buildHelpItem('Camera', 'Take a fresh photo of your food'),
+            _buildHelpItem('Gallery', 'Select an existing food photo'),
+            _buildHelpItem('Analysis', 'We identify food, nutrients, and allergens'),
+            _buildHelpItem('Safety', 'Automatic allergy warnings based on your profile'),
+            const SizedBox(height: 16),
+            Text('Make sure your dietary preferences are set in the app settings for accurate allergy detection.',
+                style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+          ]),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Got it!')),
-        ],
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Got it!'))],
       ),
     );
   }
@@ -395,22 +325,16 @@ class _CameraScreenState extends State<CameraScreen> {
   Widget _buildHelpItem(String title, String description) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.check_circle, color: Colors.green[400], size: 16),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text(description, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-              ],
-            ),
-          ),
-        ],
-      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(Icons.check_circle, color: Colors.green[400], size: 16),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(description, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+          ]),
+        )
+      ]),
     );
   }
 
