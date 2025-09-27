@@ -2,15 +2,11 @@ import 'package:flutter/foundation.dart';
 import '../models/food_item.dart';
 
 class FoodStateService with ChangeNotifier {
-  List<FoodItem> _foodHistory = [];
   FoodItem? _currentFoodItem;
-  bool _hasAllergyRisk = false;
-  dynamic _userProfile;
+  final List<FoodItem> _foodHistory = [];
 
-  List<FoodItem> get foodHistory => _foodHistory;
   FoodItem? get currentFoodItem => _currentFoodItem;
-  bool get hasAllergyRisk => _hasAllergyRisk;
-  dynamic get userProfile => _userProfile;
+  List<FoodItem> get foodHistory => List.unmodifiable(_foodHistory);
 
   void setCurrentFood(FoodItem foodItem) {
     _currentFoodItem = foodItem;
@@ -19,6 +15,9 @@ class FoodStateService with ChangeNotifier {
 
   void addToHistory(FoodItem foodItem) {
     _foodHistory.insert(0, foodItem);
+    if (_foodHistory.length > 100) {
+      _foodHistory.removeLast();
+    }
     notifyListeners();
   }
 
@@ -29,18 +28,15 @@ class FoodStateService with ChangeNotifier {
     }
   }
 
+  void updateFoodAt(int index, FoodItem updatedFoodItem) {
+    if (index >= 0 && index < _foodHistory.length) {
+      _foodHistory[index] = updatedFoodItem;
+      notifyListeners();
+    }
+  }
+
   void clearHistory() {
     _foodHistory.clear();
-    notifyListeners();
-  }
-
-  void setAllergyRisk(bool risk) {
-    _hasAllergyRisk = risk;
-    notifyListeners();
-  }
-
-  void setUserProfile(dynamic profile) {
-    _userProfile = profile;
     notifyListeners();
   }
 }

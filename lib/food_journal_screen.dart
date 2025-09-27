@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'services/food_state_service.dart';
-import 'models/food_item.dart';
-import 'passport_stamps_screen.dart';
+
+import '../services/food_state_service.dart';
+import '../models/food_item.dart';
 
 class FoodJournalScreen extends StatefulWidget {
   const FoodJournalScreen({super.key});
@@ -12,6 +15,8 @@ class FoodJournalScreen extends StatefulWidget {
 }
 
 class _FoodJournalScreenState extends State<FoodJournalScreen> {
+  final ImagePicker _picker = ImagePicker();
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -21,51 +26,10 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Food Journal'),
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: theme.colorScheme.onPrimary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.star),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const PassportStampsScreen(),
-                ),
-              );
-            },
-            tooltip: 'View Passport Stamps',
-          ),
-        ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              theme.colorScheme.primaryContainer.withAlpha(76), // was withOpacity(0.3)
-              theme.colorScheme.secondaryContainer.withAlpha(25), // was withOpacity(0.1)
-            ],
-          ),
-        ),
-        child: _buildContent(theme, foodEntries, foodState),
-      ),
-    );
-  }
-
-  Widget _buildContent(ThemeData theme, List<FoodItem> foodEntries, FoodStateService foodState) {
-    if (foodEntries.isEmpty) {
-      return _buildEmptyState(theme);
-    }
-
-    return Column(
-      children: [
-        _buildStatsHeader(theme, foodEntries),
-        Expanded(
-          child: _buildFoodList(theme, foodEntries, foodState),
-        ),
-      ],
+      body: foodEntries.isEmpty
+          ? _buildEmptyState(theme)
+          : _buildFoodList(theme, foodEntries, foodState),
     );
   }
 
@@ -77,27 +41,25 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
           Icon(
             Icons.restaurant_menu,
             size: 64,
-            color: theme.colorScheme.onSurface.withAlpha(128), // was withOpacity(0.5)
+            color: theme.colorScheme.onSurface.withAlpha(128),
           ),
           const SizedBox(height: 16),
           Text(
             'No Food Entries Yet',
             style: theme.textTheme.headlineSmall?.copyWith(
-              color: theme.colorScheme.onSurface.withAlpha(179), // was withOpacity(0.7)
+              color: theme.colorScheme.onSurface.withAlpha(179),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Scan some food to start your journal!',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withAlpha(128), // was withOpacity(0.5)
+              color: theme.colorScheme.onSurface.withAlpha(128),
             ),
           ),
           const SizedBox(height: 20),
           ElevatedButton.icon(
-            onPressed: () {
-              // Navigate to camera screen
-            },
+            onPressed: () => Navigator.pushNamed(context, '/camera'),
             icon: const Icon(Icons.camera_alt),
             label: const Text('Scan Your First Food'),
           ),
@@ -106,171 +68,168 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
     );
   }
 
-  Widget _buildStatsHeader(ThemeData theme, List<FoodItem> foodEntries) {
-    final totalFoods = foodEntries.length;
-    final totalCalories = foodEntries.fold<double>(0, (sum, item) => sum + item.calories);
-    final uniqueCuisines = foodEntries.map((e) => e.cuisineType ?? 'Unknown').toSet().length; // Changed from 'area' to 'cuisineType'
-
-    return Card(
-      margin: const EdgeInsets.all(16),
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildStatItem(theme, 'Total Foods', totalFoods.toString(), Icons.restaurant),
-            _buildStatItem(theme, 'Total Calories', totalCalories.round().toString(), Icons.local_fire_department),
-            _buildStatItem(theme, 'Cuisines', uniqueCuisines.toString(), Icons.public),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatItem(ThemeData theme, String label, String value, IconData icon) {
-    return Column(
-      children: [
-        Icon(icon, color: theme.colorScheme.primary, size: 24),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: theme.colorScheme.primary,
-          ),
-        ),
-        Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurface.withAlpha(153), // was withOpacity(0.6)
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFoodList(ThemeData theme, List<FoodItem> foodEntries, FoodStateService foodState) {
+  Widget _buildFoodList(
+      ThemeData theme, List<FoodItem> foodEntries, FoodStateService foodState) {
     return ListView.builder(
       itemCount: foodEntries.length,
       itemBuilder: (context, index) {
         final foodItem = foodEntries[index];
-        return _buildFoodItemCard(theme, foodItem, foodState, index);
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: ListTile(
+            leading: foodItem.photoPath != null
+                ? Image.file(File(foodItem.photoPath!), width: 50, height: 50, fit: BoxFit.cover)
+                : Icon(Icons.fastfood, size: 40, color: theme.colorScheme.primary),
+            title: Text(foodItem.name),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('${foodItem.calories.round()} cal • Allergens: ${foodItem.detectedAllergens.join(', ')}'),
+                if (foodItem.notes != null && foodItem.notes!.isNotEmpty)
+                  Text('Notes: ${foodItem.notes}', maxLines: 1, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+            trailing: IconButton(
+              icon: Icon(Icons.delete, color: theme.colorScheme.error),
+              onPressed: () => _showDeleteDialog(context, foodItem, foodState, index),
+            ),
+            onTap: () async {
+              await _showEditEntryDialog(context, foodItem, foodState, index);
+              setState(() {});
+            },
+          ),
+        );
       },
     );
   }
 
-  Widget _buildFoodItemCard(ThemeData theme, FoodItem foodItem, FoodStateService foodState, int index) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 1,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    foodItem.name,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.delete_outline,
-                    color: theme.colorScheme.error,
-                  ),
-                  onPressed: () {
-                    _showDeleteDialog(context, foodItem, foodState, index);
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                _buildNutritionChip(theme, '${foodItem.calories.round()} cal', Icons.local_fire_department),
-                const SizedBox(width: 8),
-                _buildNutritionChip(theme, '${foodItem.protein.round()}g protein', Icons.fitness_center),
-                const SizedBox(width: 8),
-                if (foodItem.cuisineType != null) _buildNutritionChip(theme, foodItem.cuisineType!, Icons.public), // Changed from 'area' to 'cuisineType'
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Scanned on ${_formatDate(foodItem.timestamp)}',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withAlpha(153), // was withOpacity(0.6)
-              ),
-            ),
-            if (foodItem.detectedAllergens.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 4,
-                children: foodItem.detectedAllergens.map((allergen) => 
-                  Chip(
-                    label: Text(allergen.toUpperCase()),
-                    backgroundColor: theme.colorScheme.errorContainer,
-                    labelStyle: TextStyle(
-                      color: theme.colorScheme.onErrorContainer,
-                      fontSize: 10,
-                    ),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  )
-                ).toList(),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNutritionChip(ThemeData theme, String text, IconData icon) {
-    return Chip(
-      avatar: Icon(icon, size: 16),
-      label: Text(text),
-      backgroundColor: theme.colorScheme.primaryContainer,
-      labelStyle: TextStyle(
-        color: theme.colorScheme.onPrimaryContainer,
-        fontSize: 12,
-      ),
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
-  }
-
-  void _showDeleteDialog(BuildContext context, FoodItem foodItem, FoodStateService foodState, int index) {
-    showDialog(
+  Future<void> _showDeleteDialog(
+      BuildContext context, FoodItem foodItem, FoodStateService foodState, int index) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Food Entry?'),
         content: Text('Are you sure you want to delete "${foodItem.name}" from your journal?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              foodState.removeFromHistory(index);
-              setState(() {});
-              Navigator.pop(context);
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-            ),
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Delete'),
           ),
         ],
       ),
     );
+
+    if (confirmed == true) {
+      foodState.removeFromHistory(index);
+      setState(() {});
+    }
+  }
+
+  Future<void> _showEditEntryDialog(BuildContext context, FoodItem foodItem, FoodStateService foodState, int index) async {
+    final TextEditingController notesController = TextEditingController(text: foodItem.notes);
+    String? photoPath = foodItem.photoPath;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: Text('Edit Notes & Photo\n${foodItem.name}'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (photoPath != null)
+                    Image.file(File(photoPath!), height: 150, fit: BoxFit.cover),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.camera_alt),
+                        onPressed: () async {
+                          final XFile? picked = await _picker.pickImage(source: ImageSource.camera);
+                          if (picked != null) {
+                            setDialogState(() {
+                              photoPath = picked.path;
+                            });
+                          }
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.photo_library),
+                        onPressed: () async {
+                          final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
+                          if (picked != null) {
+                            setDialogState(() {
+                              photoPath = picked.path;
+                            });
+                          }
+                        },
+                      ),
+                      if (photoPath != null)
+                        IconButton(
+                          icon: const Icon(Icons.delete_forever),
+                          onPressed: () {
+                            setDialogState(() {
+                              photoPath = null;
+                            });
+                          },
+                        ),
+                    ],
+                  ),
+                  TextField(
+                    controller: notesController,
+                    decoration: const InputDecoration(labelText: 'Notes'),
+                    maxLines: 3,
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final updatedItem = FoodItem(
+                    id: foodItem.id,
+                    name: foodItem.name,
+                    confidenceScore: foodItem.confidenceScore,
+                    calories: foodItem.calories,
+                    protein: foodItem.protein,
+                    carbs: foodItem.carbs,
+                    fat: foodItem.fat,
+                    source: foodItem.source,
+                    detectedAllergens: foodItem.detectedAllergens,
+                    imagePath: foodItem.imagePath,
+                    timestamp: foodItem.timestamp,
+                    photoPath: photoPath,
+                    notes: notesController.text.trim(),
+                    cuisineType: foodItem.cuisineType,
+                    ingredients: foodItem.ingredients,
+                    nutritionInfo: foodItem.nutritionInfo,
+                    description: foodItem.description,
+                    isVerified: foodItem.isVerified,
+                    area: foodItem.area,
+                    position: foodItem.position,
+                  );
+
+                  foodState.updateFoodAt(index, updatedItem);
+                  Navigator.pop(context);
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    setState(() {});
   }
 }

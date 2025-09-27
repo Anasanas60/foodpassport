@@ -1,11 +1,14 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'services/food_state_service.dart';
-import 'services/user_profile_service.dart';
-import 'models/food_item.dart' as models;
+import '../services/user_profile_service.dart';
+import '../services/food_state_service.dart'; 
+import '../models/food_item.dart' as models;
 import 'recipe_screen.dart';
 import 'emergency_alert_screen.dart';
+import '../config/api_config.dart';
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -18,29 +21,6 @@ class _CameraScreenState extends State<CameraScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   bool _isProcessing = false;
   String _currentStatus = 'Ready to scan food';
-
-  // Fallback method if FoodRecognitionService is not available
-  Future<models.FoodItem> _fallbackFoodRecognition(XFile image, List<String> userAllergies) async {
-    // Simple fallback that creates a basic FoodItem
-    return models.FoodItem(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: 'Detected Food',
-      confidenceScore: 0.5,
-      calories: 250.0,
-      protein: 15.0,
-      carbs: 30.0,
-      fat: 10.0,
-      source: 'fallback',
-      detectedAllergens: [],
-      imagePath: image.path,
-      timestamp: DateTime.now(),
-    );
-  }
-
-  // Fallback allergy check
-  bool _fallbackHasAllergyEmergency(models.FoodItem foodItem, List<String> userAllergies) {
-    return foodItem.detectedAllergens.any((allergen) => userAllergies.contains(allergen));
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,31 +66,21 @@ class _CameraScreenState extends State<CameraScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Row(
           children: [
-            Icon(
-              _getStatusIcon(),
-              color: _getStatusColor(),
-              size: 24,
-            ),
+            Icon(_getStatusIcon(), color: _getStatusColor(), size: 24),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    _getStatusTitle(),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
+                  Text(_getStatusTitle(),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      )),
                   const SizedBox(height: 4),
-                  Text(
-                    _currentStatus,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
-                  ),
+                  Text(_currentStatus,
+                      style:
+                          TextStyle(color: Colors.grey[600], fontSize: 14)),
                 ],
               ),
             ),
@@ -131,25 +101,15 @@ class _CameraScreenState extends State<CameraScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.photo_camera,
-            size: 64,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.photo_camera, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             'Food Camera Preview',
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 16,
-            ),
+            style: TextStyle(color: Colors.grey[600], fontSize: 16),
           ),
           Text(
             'Take a clear photo of your food',
-            style: TextStyle(
-              color: Colors.grey[500],
-              fontSize: 12,
-            ),
+            style: TextStyle(color: Colors.grey[500], fontSize: 12),
           ),
         ],
       ),
@@ -196,18 +156,12 @@ class _CameraScreenState extends State<CameraScreen> {
         const SizedBox(height: 20),
         Text(
           'Analyzing your food...',
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 16,
-          ),
+          style: TextStyle(color: Colors.grey[600], fontSize: 16),
         ),
         const SizedBox(height: 8),
         Text(
           'Identifying ingredients, nutrition, and allergens',
-          style: TextStyle(
-            color: Colors.grey[500],
-            fontSize: 12,
-          ),
+          style: TextStyle(color: Colors.grey[500], fontSize: 12),
           textAlign: TextAlign.center,
         ),
       ],
@@ -242,11 +196,7 @@ class _CameraScreenState extends State<CameraScreen> {
               '• Capture the entire dish clearly\n'
               '• Avoid blurry or dark images\n'
               '• Include unique ingredients if possible',
-              style: TextStyle(
-                color: Colors.blue[600],
-                fontSize: 11,
-                height: 1.4,
-              ),
+              style: TextStyle(color: Colors.blue[600], fontSize: 11, height: 1.4),
             ),
           ],
         ),
@@ -261,7 +211,7 @@ class _CameraScreenState extends State<CameraScreen> {
       maxHeight: 1200,
       imageQuality: 85,
     );
-    
+
     if (image != null) {
       await _processImage(image);
     }
@@ -274,7 +224,7 @@ class _CameraScreenState extends State<CameraScreen> {
       maxHeight: 1200,
       imageQuality: 85,
     );
-    
+
     if (image != null) {
       await _processImage(image);
     }
@@ -289,12 +239,8 @@ class _CameraScreenState extends State<CameraScreen> {
     try {
       final userProfileService = Provider.of<UserProfileService>(context, listen: false);
       final foodStateService = Provider.of<FoodStateService>(context, listen: false);
-      
-      // FIXED: Use fallback method since FoodRecognitionService is not available
-      final models.FoodItem foodItem = await _fallbackFoodRecognition(
-        image,
-        userProfileService.userProfile?.allergies ?? [],
-      );
+
+      final foodItem = await _analyzeFoodImageWithSpoonacular(image.path);
 
       // Update global state
       foodStateService.setCurrentFood(foodItem);
@@ -304,25 +250,22 @@ class _CameraScreenState extends State<CameraScreen> {
         _currentStatus = 'Food identified: ${foodItem.name}';
       });
 
-      // Check for allergy emergency using fallback
-      final hasAllergyRisk = _fallbackHasAllergyEmergency(
-        foodItem, 
-        userProfileService.userProfile?.allergies ?? []
-      );
+      final userAllergies = userProfileService.userProfile?.allergies ?? [];
 
-      // Navigate to appropriate screen
+      // Check for allergy emergency
+      final hasAllergyRisk = foodItem.detectedAllergens.any((allergen) => userAllergies.contains(allergen));
+
       if (hasAllergyRisk && mounted) {
         _navigateToEmergencyScreen(foodItem);
       } else if (mounted) {
         _navigateToRecipeScreen(foodItem);
       }
-
     } catch (e) {
       setState(() {
         _isProcessing = false;
         _currentStatus = 'Error: Failed to analyze image';
       });
-      
+
       if (mounted) {
         _showErrorDialog('Failed to analyze food image: $e');
       }
@@ -332,6 +275,50 @@ class _CameraScreenState extends State<CameraScreen> {
           _isProcessing = false;
         });
       }
+    }
+  }
+
+  Future<models.FoodItem> _analyzeFoodImageWithSpoonacular(String imagePath) async {
+    final url = Uri.parse('${ApiConfig.spoonacularBaseUrl}/food/images/analyze?apiKey=${ApiConfig.spoonacularApiKey}');
+    final bytes = await XFile(imagePath).readAsBytes();
+    final base64Image = base64Encode(bytes);
+
+    final response = await http.post(url, body: jsonEncode({
+      'image': {'data': base64Image},
+      'model': 'food-recognition'
+    }), headers: {
+      'Content-Type': 'application/json',
+    });
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      final dishName = (data['classifiers'] != null && data['classifiers'].isNotEmpty)
+          ? data['classifiers'][0]['tagName'] ?? 'Unknown Dish'
+          : 'Unknown Dish';
+
+      final ingredientsList = <String>[];
+      if (data['ingredients'] != null && data['ingredients'] is List) {
+        for (var ingredient in data['ingredients']) {
+          final name = ingredient['name'] ?? '';
+          if (name.isNotEmpty) ingredientsList.add(name);
+        }
+      }
+
+      return models.FoodItem(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: dishName,
+        confidenceScore: data['probability']?.toDouble() ?? 0.8,
+        calories: 0.0,
+        protein: 0.0,
+        carbs: 0.0,
+        fat: 0.0,
+        source: 'spoonacular',
+        detectedAllergens: ingredientsList,
+        imagePath: imagePath,
+        timestamp: DateTime.now(),
+      );
+    } else {
+      throw Exception('Spoonacular API error: ${response.statusCode}');
     }
   }
 
@@ -370,10 +357,7 @@ class _CameraScreenState extends State<CameraScreen> {
         title: const Text('Analysis Failed'),
         content: Text(message),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
         ],
       ),
     );
@@ -402,10 +386,7 @@ class _CameraScreenState extends State<CameraScreen> {
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Got it!'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Got it!')),
         ],
       ),
     );
@@ -423,14 +404,8 @@ class _CameraScreenState extends State<CameraScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  description,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                ),
+                Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(description, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
               ],
             ),
           ),

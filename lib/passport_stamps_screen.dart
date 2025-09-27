@@ -1,32 +1,39 @@
 import 'package:flutter/material.dart';
-import 'models/passport_stamp.dart';
+import 'package:provider/provider.dart';
+import '../services/GamificationService.dart';
 
-class PassportStampsScreen extends StatefulWidget {
+class PassportStampsScreen extends StatelessWidget {
   const PassportStampsScreen({super.key});
-  @override State<PassportStampsScreen> createState() => _PassportStampsScreenState();
-}
 
-class _PassportStampsScreenState extends State<PassportStampsScreen> {
-  final List<PassportStamp> stamps = [];
-  @override void initState() {
-    super.initState();
-    _loadSampleStamps();
-  }
-  void _loadSampleStamps() {
-    stamps.add(PassportStamp.basic(foodName: 'Pad Thai', date: DateTime.now(), location: 'Thailand'));
-    stamps.add(PassportStamp.basic(foodName: 'Pizza', date: DateTime.now(), location: 'Italy'));
-    stamps.add(PassportStamp.basic(foodName: 'Sushi', date: DateTime.now(), location: 'Japan'));
-    setState(() {});
-  }
-  @override Widget build(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
+    final gamification = Provider.of<GamificationService>(context);
+
     return Scaffold(
-      appBar: AppBar(title: Text('Food Passport')),
-      body: ListView.builder(itemCount: stamps.length, itemBuilder: (context, index) {
-        final stamp = stamps[index];
-        return Card(margin: EdgeInsets.all(8), child: ListTile(
-          leading: Icon(stamp.icon), title: Text(stamp.foodName), subtitle: Text(stamp.location)
-        ));
-      }),
+      appBar: AppBar(title: const Text('Passport Stamps & Badges')),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Level: ${gamification.level}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text('Points: ${gamification.points}', style: const TextStyle(fontSize: 16)),
+            const SizedBox(height: 20),
+            const Text('Badges:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Wrap(
+              spacing: 8,
+              children: gamification.badges.map((badge) => Chip(label: Text(badge))).toList(),
+            ),
+            const SizedBox(height: 20),
+            const Text('Achievements:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Expanded(
+              child: ListView(
+                children: gamification.achievements.map((ach) => ListTile(title: Text(ach))).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

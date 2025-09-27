@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'models/food_item.dart';
+import '../models/food_item.dart';
 
 class EmergencyAlertScreen extends StatelessWidget {
-  final FoodItem foodItem; // Accept the FoodItem object
+  final FoodItem foodItem;
 
   const EmergencyAlertScreen({super.key, required this.foodItem});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final userAllergens = foodItem.detectedAllergens;
-    
+    final allergens = foodItem.detectedAllergens;
+
     return Scaffold(
-      backgroundColor: theme.colorScheme.errorContainer.withAlpha((0.1 * 255).round()),
+      backgroundColor: theme.colorScheme.errorContainer.withOpacity(0.1),
       appBar: AppBar(
         title: const Text('🚨 EMERGENCY ALERT'),
         backgroundColor: theme.colorScheme.error,
@@ -32,44 +32,37 @@ class EmergencyAlertScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
-              
-              // Display the detected food name
               Text(
                 'Food: ${foodItem.name}',
                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 10),
-              
-              // Display specific allergens detected
-              if (userAllergens.isNotEmpty) ...[
+              if (allergens.isNotEmpty) ...[
                 Text(
                   'Detected Allergens:',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: theme.colorScheme.error),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  userAllergens.map((allergen) => allergen.toUpperCase()).join(', '),
+                  allergens.map((a) => a.toUpperCase()).join(', '),
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
               ],
-              
               const Text(
                 'We detected ingredients you\'re allergic to. Notify staff immediately or seek medical help.',
                 style: TextStyle(fontSize: 18),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
-              
-              // Emergency Help Button
               ElevatedButton(
                 onPressed: () async {
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('🚑 Alerting staff about ${userAllergens.join(", ")}'),
+                      content: Text('🚑 Alerting staff about ${allergens.join(", ")}'),
                       backgroundColor: theme.colorScheme.error,
                     ),
                   );
@@ -84,8 +77,6 @@ class EmergencyAlertScreen extends StatelessWidget {
                 child: const Text('CALL FOR HELP NOW', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 20),
-              
-              // Show Nutrition Information
               Card(
                 color: Colors.orange[50],
                 child: Padding(
@@ -106,12 +97,11 @@ class EmergencyAlertScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              
-              // Safe Exit Button
               TextButton(
                 onPressed: () {
-                  if (!context.mounted) return;
-                  Navigator.pop(context);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
                 },
                 child: Text('I\'m Safe - Go Back', style: TextStyle(color: theme.colorScheme.error)),
               ),
