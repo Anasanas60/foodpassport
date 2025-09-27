@@ -1,0 +1,5 @@
+﻿// Run this command to see all files needing withOpacity fixes:
+// grep -r 'withOpacity' lib/
+
+// Manual fix: Replace .withOpacity(0.X) with .withAlpha((0.X * 255).round())
+// Example: Colors.black.withOpacity(0.5) becomes Colors.black.withAlpha(128)

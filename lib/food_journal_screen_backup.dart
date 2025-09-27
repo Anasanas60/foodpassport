@@ -44,8 +44,8 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              theme.colorScheme.primaryContainer.withAlpha(76), // was withOpacity(0.3)
-              theme.colorScheme.secondaryContainer.withAlpha(25), // was withOpacity(0.1)
+              theme.colorScheme.primaryContainer.withOpacity(0.3),
+              theme.colorScheme.secondaryContainer.withOpacity(0.1),
             ],
           ),
         ),
@@ -69,6 +69,7 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
     );
   }
 
+  // Rest of the FoodJournalScreen methods remain the same...
   Widget _buildEmptyState(ThemeData theme) {
     return Center(
       child: Column(
@@ -77,20 +78,20 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
           Icon(
             Icons.restaurant_menu,
             size: 64,
-            color: theme.colorScheme.onSurface.withAlpha(128), // was withOpacity(0.5)
+            color: theme.colorScheme.onSurface.withOpacity(0.5),
           ),
           const SizedBox(height: 16),
           Text(
             'No Food Entries Yet',
             style: theme.textTheme.headlineSmall?.copyWith(
-              color: theme.colorScheme.onSurface.withAlpha(179), // was withOpacity(0.7)
+              color: theme.colorScheme.onSurface.withOpacity(0.7),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Scan some food to start your journal!',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withAlpha(128), // was withOpacity(0.5)
+              color: theme.colorScheme.onSurface.withOpacity(0.5),
             ),
           ),
           const SizedBox(height: 20),
@@ -109,7 +110,7 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
   Widget _buildStatsHeader(ThemeData theme, List<FoodItem> foodEntries) {
     final totalFoods = foodEntries.length;
     final totalCalories = foodEntries.fold<double>(0, (sum, item) => sum + item.calories);
-    final uniqueCuisines = foodEntries.map((e) => e.cuisineType ?? 'Unknown').toSet().length; // Changed from 'area' to 'cuisineType'
+    final uniqueCuisines = foodEntries.map((e) => e.area ?? 'Unknown').toSet().length;
 
     return Card(
       margin: const EdgeInsets.all(16),
@@ -143,7 +144,7 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
         Text(
           label,
           style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurface.withAlpha(153), // was withOpacity(0.6)
+            color: theme.colorScheme.onSurface.withOpacity(0.6),
           ),
         ),
       ],
@@ -197,14 +198,14 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
                 const SizedBox(width: 8),
                 _buildNutritionChip(theme, '${foodItem.protein.round()}g protein', Icons.fitness_center),
                 const SizedBox(width: 8),
-                if (foodItem.cuisineType != null) _buildNutritionChip(theme, foodItem.cuisineType!, Icons.public), // Changed from 'area' to 'cuisineType'
+                if (foodItem.area != null) _buildNutritionChip(theme, foodItem.area!, Icons.public),
               ],
             ),
             const SizedBox(height: 8),
             Text(
               'Scanned on ${_formatDate(foodItem.timestamp)}',
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withAlpha(153), // was withOpacity(0.6)
+                color: theme.colorScheme.onSurface.withOpacity(0.6),
               ),
             ),
             if (foodItem.detectedAllergens.isNotEmpty) ...[
@@ -274,3 +275,4 @@ class _FoodJournalScreenState extends State<FoodJournalScreen> {
     );
   }
 }
+
