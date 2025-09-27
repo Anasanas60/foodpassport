@@ -30,7 +30,7 @@
   
   // API Status Check
   static bool get isSpoonacularKeyValid {
-    return spoonacularApiKey.isNotEmpty && spoonacularApiKey != 'YOUR_SPOONACULAR_API_KEY';
+    return spoonacularApiKey.isNotEmpty && spoonacularApiKey != 'ece7ade9abab4bd8af32a66dac3cbee4';
   }
   
   // Replace the broken method with:

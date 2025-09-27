@@ -7,7 +7,9 @@ import '../utils/allergen_checker.dart';
 
 class RecipeScreen extends StatefulWidget {
   final String dishName;
-  const RecipeScreen({super.key, required this.dishName});
+  final String? imagePath;
+
+  const RecipeScreen({super.key, required this.dishName, this.imagePath});
 
   @override
   State<RecipeScreen> createState() => _RecipeScreenState();
