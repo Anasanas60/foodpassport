@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-// REMOVED: import 'services/food_recognition_service.dart'; - not available
 
 class MenuScanScreen extends StatefulWidget {
   const MenuScanScreen({super.key});
-  @override 
+
+  @override
   State<MenuScanScreen> createState() => _MenuScanScreenState();
 }
 
@@ -21,18 +21,17 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
     try {
       final image = await ImagePicker().pickImage(source: ImageSource.camera);
       if (image != null) {
-        // FIXED: Use a simple fallback since FoodRecognitionService is not available
         await _processMenuImage(image);
-        setState(() { 
+        setState(() {
           _scannedText = 'Menu scanned successfully!\n\nFeatures coming soon:\n• Text extraction\n• Language translation\n• Allergy detection';
         });
       } else {
-        setState(() { 
+        setState(() {
           _scannedText = 'No image selected';
         });
       }
     } catch (e) {
-      setState(() { 
+      setState(() {
         _scannedText = 'Error scanning menu: $e';
       });
     } finally {
@@ -42,13 +41,8 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
     }
   }
 
-  // Fallback method for menu processing
   Future<void> _processMenuImage(XFile image) async {
-    // Simulate processing delay
     await Future.delayed(const Duration(seconds: 2));
-    
-    // In a real app, this would use OCR to extract text from the menu
-    // For now, we'll just return a success message
     return;
   }
 
@@ -62,12 +56,12 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
       final image = await ImagePicker().pickImage(source: ImageSource.gallery);
       if (image != null) {
         await _processMenuImage(image);
-        setState(() { 
+        setState(() {
           _scannedText = 'Menu image processed!\n\nThis feature will include:\n• OCR text recognition\n• Multi-language translation\n• Smart allergy warnings';
         });
       }
     } catch (e) {
-      setState(() { 
+      setState(() {
         _scannedText = 'Error processing image: $e';
       });
     } finally {
@@ -77,59 +71,48 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
     }
   }
 
-  @override 
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Menu Scanner'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Scanner Icon
             Icon(
               Icons.menu_book,
               size: 80,
-              color: Colors.blue[300],
+              color: theme.colorScheme.primary.withAlpha((0.5 * 255).round()),
             ),
             const SizedBox(height: 20),
-            
-            // Title
-            const Text(
+            Text(
               'Menu Scanner',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-              ),
+              style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
             ),
             const SizedBox(height: 10),
-            
-            // Description
-            const Text(
+            Text(
               'Scan restaurant menus to extract text and detect allergens',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 30),
-
-            // Scan Buttons
             if (!_isScanning) ...[
               ElevatedButton.icon(
                 onPressed: _scanMenu,
                 icon: const Icon(Icons.camera_alt),
                 label: const Text('Scan Menu with Camera'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                 ),
               ),
               const SizedBox(height: 15),
@@ -139,57 +122,46 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
                 label: const Text('Choose from Gallery'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                 ),
               ),
             ],
-
-            // Loading Indicator
             if (_isScanning) ...[
               const CircularProgressIndicator(),
               const SizedBox(height: 20),
-              const Text('Processing menu image...'),
+              Text('Processing menu image...', style: theme.textTheme.bodyMedium),
             ],
-
             const SizedBox(height: 30),
-
-            // Scanned Text Display
             Expanded(
               child: SingleChildScrollView(
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
+                    color: theme.colorScheme.surfaceVariant,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
+                    border: Border.all(color: theme.colorScheme.outline),
                   ),
                   child: Text(
                     _scannedText.isEmpty ? 'Scan a menu to see results here...' : _scannedText,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: _scannedText.isEmpty ? Colors.grey[400] : Colors.grey[800],
-                      fontSize: 14,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: _scannedText.isEmpty ? theme.colorScheme.outline : theme.colorScheme.onSurface,
                     ),
                   ),
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
-
-            // Feature Info
             Card(
-              color: Colors.orange[50],
+              color: theme.colorScheme.secondaryContainer,
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Column(
                   children: [
-                    const Text(
+                    Text(
                       'Coming Soon Features:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange,
-                      ),
+                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -197,10 +169,7 @@ class _MenuScanScreenState extends State<MenuScanScreen> {
                       '• Language translation\n'
                       '• Allergy detection\n'
                       '• Price recognition',
-                      style: TextStyle(
-                        color: Colors.orange[700],
-                        fontSize: 12,
-                      ),
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary),
                     ),
                   ],
                 ),

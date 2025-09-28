@@ -24,26 +24,30 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Food Scanner'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
       ),
-      body: _buildBody(context),
+      body: _buildBody(context, theme),
     );
   }
 
-  Widget _buildBody(BuildContext context) {
+  Widget _buildBody(BuildContext context, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(_currentStatus,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          Text(
+            _currentStatus,
+            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 30),
-          _buildActionButtons(),
+          _buildActionButtons(theme),
           const SizedBox(height: 30),
           _isProcessing
               ? const Center(child: CircularProgressIndicator())
@@ -53,7 +57,7 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(ThemeData theme) {
     return Row(
       children: [
         Expanded(
@@ -62,9 +66,10 @@ class _CameraScreenState extends State<CameraScreen> {
             icon: const Icon(Icons.camera_alt),
             label: const Text('Take Photo'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             ),
           ),
         ),
@@ -76,6 +81,7 @@ class _CameraScreenState extends State<CameraScreen> {
             label: const Text('From Gallery'),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             ),
           ),
         ),

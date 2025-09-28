@@ -32,8 +32,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
     try {
       final userProfileService = Provider.of<UserProfileService>(context, listen: false);
       final userProfile = userProfileService.userProfile;
-      
-      // Get real recipe data from Spoonacular API
+
       final recipe = await RecipeService.getAIRecipe(
         widget.dishName,
         dietaryRestrictions: userProfile?.allergies ?? [],
@@ -43,8 +42,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
         setState(() {
           _recipeData = recipe;
           _isLoading = false;
-          
-          // Check for allergens
+
           if (recipe != null && userProfile != null) {
             _detectedAllergens = AllergenChecker.detectAllergens(
               foodName: recipe.name,
@@ -52,7 +50,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
               cuisineType: recipe.cuisine,
               ingredients: recipe.ingredients,
             );
-            
+
             _emergencyAllergens = AllergenChecker.getEmergencyAllergens(
               detectedAllergens: _detectedAllergens,
               userAllergies: userProfile.allergies,
@@ -70,7 +68,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
     }
   }
 
-  Widget _buildAllergyWarnings() {
+  Widget _buildAllergyWarnings(ThemeData theme) {
     if (_emergencyAllergens.isEmpty) return const SizedBox();
 
     return Container(
@@ -78,23 +76,22 @@ class _RecipeScreenState extends State<RecipeScreen> {
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.red[50],
+        color: theme.colorScheme.errorContainer,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red[200]!),
+        border: Border.all(color: theme.colorScheme.error),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.warning_amber, color: Colors.red[700]),
+              Icon(Icons.warning_amber, color: theme.colorScheme.error),
               const SizedBox(width: 8),
               Text(
                 'ALLERGY ALERT',
-                style: TextStyle(
-                  color: Colors.red[700],
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.colorScheme.error,
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
                 ),
               ),
             ],
@@ -102,25 +99,19 @@ class _RecipeScreenState extends State<RecipeScreen> {
           const SizedBox(height: 8),
           Text(
             'This dish contains: ${_emergencyAllergens.join(', ')}',
-            style: TextStyle(
-              color: Colors.red[700],
-              fontSize: 14,
-            ),
+            style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
           ),
           const SizedBox(height: 4),
           Text(
             'Avoid if you have these allergies',
-            style: TextStyle(
-              color: Colors.red[600],
-              fontSize: 12,
-            ),
+            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error.withOpacity(0.8)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDetectedAllergens() {
+  Widget _buildDetectedAllergens(ThemeData theme) {
     if (_detectedAllergens.isEmpty) return const SizedBox();
 
     return Container(
@@ -128,23 +119,20 @@ class _RecipeScreenState extends State<RecipeScreen> {
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.orange[50],
+        color: theme.colorScheme.primaryContainer.withOpacity(0.3),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.orange[200]!),
+        border: Border.all(color: theme.colorScheme.primary),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.info_outline, color: Colors.orange[700]),
+              Icon(Icons.info_outline, color: theme.colorScheme.primary),
               const SizedBox(width: 8),
               Text(
                 'Contains: ${_detectedAllergens.join(', ')}',
-                style: TextStyle(
-                  color: Colors.orange[700],
-                  fontSize: 14,
-                ),
+                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.primary),
               ),
             ],
           ),
@@ -153,7 +141,9 @@ class _RecipeScreenState extends State<RecipeScreen> {
     );
   }
 
-  Widget _buildRecipeContent() {
+  Widget _buildRecipeContent(BuildContext context) {
+    final theme = Theme.of(context);
+
     if (_isLoading) {
       return const Center(
         child: Column(
@@ -172,14 +162,14 @@ class _RecipeScreenState extends State<RecipeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.grey),
+            Icon(Icons.error_outline, size: 64, color: theme.colorScheme.onSurface.withOpacity(0.4)),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Failed to load recipe data',
-              style: TextStyle(fontSize: 18),
+              style: theme.textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
-            const Text('Please check your connection and try again'),
+            Text('Please check your connection and try again', style: theme.textTheme.bodyMedium),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadRecipeData,
@@ -195,9 +185,9 @@ class _RecipeScreenState extends State<RecipeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.restaurant_menu, size: 64, color: Colors.grey),
+            Icon(Icons.restaurant_menu, size: 64, color: theme.colorScheme.onSurface.withOpacity(0.4)),
             const SizedBox(height: 16),
-            const Text('No recipe data available'),
+            Text('No recipe data available', style: theme.textTheme.titleMedium),
           ],
         ),
       );
@@ -212,6 +202,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
         children: [
           // Recipe Header
           Card(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -219,10 +210,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
                 children: [
                   Text(
                     recipe.name,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -230,28 +218,28 @@ class _RecipeScreenState extends State<RecipeScreen> {
                     children: [
                       Chip(
                         label: Text(recipe.cuisine),
-                        backgroundColor: Colors.blue[50],
+                        backgroundColor: theme.colorScheme.primaryContainer,
                       ),
                       Chip(
                         label: Text(recipe.category),
-                        backgroundColor: Colors.green[50],
+                        backgroundColor: theme.colorScheme.secondaryContainer,
                       ),
                       Chip(
                         label: Text(recipe.difficulty),
-                        backgroundColor: Colors.orange[50],
+                        backgroundColor: theme.colorScheme.tertiaryContainer,
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.schedule, size: 16, color: Colors.grey),
+                      Icon(Icons.schedule, size: 16, color: theme.colorScheme.onSurfaceVariant),
                       const SizedBox(width: 4),
-                      Text(recipe.cookTime),
+                      Text(recipe.cookTime, style: theme.textTheme.bodyMedium),
                       const SizedBox(width: 16),
-                      Icon(Icons.people, size: 16, color: Colors.grey),
+                      Icon(Icons.people, size: 16, color: theme.colorScheme.onSurfaceVariant),
                       const SizedBox(width: 4),
-                      Text('Serves ${recipe.servings}'),
+                      Text('Serves ${recipe.servings}', style: theme.textTheme.bodyMedium),
                     ],
                   ),
                 ],
@@ -262,36 +250,33 @@ class _RecipeScreenState extends State<RecipeScreen> {
           const SizedBox(height: 16),
 
           // Allergy Warnings
-          _buildAllergyWarnings(),
-          _buildDetectedAllergens(),
+          _buildAllergyWarnings(theme),
+          _buildDetectedAllergens(theme),
 
           const SizedBox(height: 16),
 
           // Ingredients Section
           Card(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Ingredients',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                  Text('Ingredients', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  ...recipe.ingredients.map(
+                    (ingredient) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          Icon(Icons.circle, size: 8, color: theme.colorScheme.primary),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text(ingredient, style: theme.textTheme.bodyMedium)),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  ...recipe.ingredients.map((ingredient) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        Icon(Icons.circle, size: 8, color: Colors.blue),
-                        const SizedBox(width: 12),
-                        Expanded(child: Text(ingredient)),
-                      ],
-                    ),
-                  )),
                 ],
               ),
             ),
@@ -301,47 +286,40 @@ class _RecipeScreenState extends State<RecipeScreen> {
 
           // Instructions Section
           Card(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Instructions',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Text('Instructions', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
-                  ...recipe.instructions.asMap().entries.map((entry) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            color: Colors.blue,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${entry.key + 1}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                  ...recipe.instructions.asMap().entries.map(
+                        (entry) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '${entry.key + 1}',
+                                    style: theme.textTheme.bodySmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 12),
+                              Expanded(child: Text(entry.value, style: theme.textTheme.bodyMedium)),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(child: Text(entry.value)),
-                      ],
-                    ),
-                  )),
+                      ),
                 ],
               ),
             ),
@@ -352,29 +330,26 @@ class _RecipeScreenState extends State<RecipeScreen> {
           // Tips Section
           if (recipe.tips.isNotEmpty) ...[
             Card(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Chef\'s Tips',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                    Text('Chef\'s Tips', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    ...recipe.tips.map(
+                      (tip) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            Icon(Icons.lightbulb_outline, size: 16, color: theme.colorScheme.secondary),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text(tip, style: theme.textTheme.bodyMedium)),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    ...recipe.tips.map((tip) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(
-                        children: [
-                          Icon(Icons.lightbulb_outline, size: 16, color: Colors.amber),
-                          const SizedBox(width: 12),
-                          Expanded(child: Text(tip)),
-                        ],
-                      ),
-                    )),
                   ],
                 ),
               ),
@@ -391,14 +366,15 @@ class _RecipeScreenState extends State<RecipeScreen> {
       appBar: AppBar(
         title: Text('Recipe: ${widget.dishName}'),
         actions: [
-          if (_recipeData != null) IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadRecipeData,
-            tooltip: 'Refresh recipe',
-          ),
+          if (_recipeData != null)
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _loadRecipeData,
+              tooltip: 'Refresh recipe',
+            ),
         ],
       ),
-      body: _buildRecipeContent(),
+      body: _buildRecipeContent(context),
     );
   }
 }

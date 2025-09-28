@@ -1,114 +1,129 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
+import '../services/food_state_service.dart';
+import '../models/food_item.dart';
 
 class FoodJournalScreen extends StatelessWidget {
   const FoodJournalScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Replace below with your actual UI and logic
+    final foodState = Provider.of<FoodStateService>(context);
+    final journalEntries = foodState.foodHistory;
+
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Food Journal'),
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
       ),
-      body: const Center(
-        child: Text('Food Journal Screen Content'),
+      body: journalEntries.isEmpty
+          ? Center(
+              child: Text(
+                'No journal entries yet.\nScan some food to get started!',
+                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                textAlign: TextAlign.center,
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: journalEntries.length,
+              itemBuilder: (context, index) {
+                final item = journalEntries[index];
+                return _buildJournalCard(context, item, theme);
+              },
+            ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.pushNamed(context, '/camera'),
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+        child: const Icon(Icons.camera_alt),
+        tooltip: 'Scan New Food',
       ),
     );
   }
-}
 
-class FoodItem {
-  final String id;
-  final String name;
-  final double confidenceScore;
-  final double calories;
-  final double protein;
-  final double carbs;
-  final double fat;
-  final String source;
-  final List<String> detectedAllergens;
-  final String imagePath;
-  final DateTime timestamp;
-
-  final Position? position;
-  final String? area;
-
-  // Newly added nullable fields
-  final String? photoPath;
-  final String? notes;
-  final String? cuisineType;
-  final List<String>? ingredients;
-  final Map<String, dynamic>? nutritionInfo;
-  final String? description;
-  final bool? isVerified;
-
-  FoodItem({
-    required this.id,
-    required this.name,
-    required this.confidenceScore,
-    required this.calories,
-    required this.protein,
-    required this.carbs,
-    required this.fat,
-    required this.source,
-    required this.detectedAllergens,
-    required this.imagePath,
-    required this.timestamp,
-    this.position,
-    this.area,
-    this.photoPath,
-    this.notes,
-    this.cuisineType,
-    this.ingredients,
-    this.nutritionInfo,
-    this.description,
-    this.isVerified,
-  });
-
-  FoodItem copyWith({
-    String? id,
-    String? name,
-    double? confidenceScore,
-    double? calories,
-    double? protein,
-    double? carbs,
-    double? fat,
-    String? source,
-    List<String>? detectedAllergens,
-    String? imagePath,
-    DateTime? timestamp,
-    Position? position,
-    String? area,
-    String? photoPath,
-    String? notes,
-    String? cuisineType,
-    List<String>? ingredients,
-    Map<String, dynamic>? nutritionInfo,
-    String? description,
-    bool? isVerified,
-  }) {
-    return FoodItem(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      confidenceScore: confidenceScore ?? this.confidenceScore,
-      calories: calories ?? this.calories,
-      protein: protein ?? this.protein,
-      carbs: carbs ?? this.carbs,
-      fat: fat ?? this.fat,
-      source: source ?? this.source,
-      detectedAllergens: detectedAllergens ?? this.detectedAllergens,
-      imagePath: imagePath ?? this.imagePath,
-      timestamp: timestamp ?? this.timestamp,
-      position: position ?? this.position,
-      area: area ?? this.area,
-      photoPath: photoPath ?? this.photoPath,
-      notes: notes ?? this.notes,
-      cuisineType: cuisineType ?? this.cuisineType,
-      ingredients: ingredients ?? this.ingredients,
-      nutritionInfo: nutritionInfo ?? this.nutritionInfo,
-      description: description ?? this.description,
-      isVerified: isVerified ?? this.isVerified,
+  Widget _buildJournalCard(BuildContext context, FoodItem item, ThemeData theme) {
+    final allergyWarning = item.detectedAllergens.isNotEmpty;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        onTap: () {
+          Navigator.pushNamed(context, '/recipe', arguments: {'dishName': item.name});
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: item.imagePath.isNotEmpty
+                    ? Image.asset(
+                        item.imagePath,
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                      )
+                    : Container(
+                        width: 80,
+                        height: 80,
+                        color: theme.colorScheme.surface,
+                        child: Icon(Icons.fastfood, size: 40, color: theme.colorScheme.onSurfaceVariant),
+                      ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item.name,
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(
+                        'Calories: ${item.calories.round()} | Protein: ${item.protein.round()}g | Carbs: ${item.carbs.round()}g | Fat: ${item.fat.round()}g',
+                        style: theme.textTheme.bodySmall),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Scanned on: ${_formatDate(item.timestamp)}',
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                    if (allergyWarning) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded, color: theme.colorScheme.error, size: 18),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Contains allergens',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.error,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      )
+                    ]
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+    if (difference.inDays == 0) return 'Today';
+    if (difference.inDays == 1) return 'Yesterday';
+    if (difference.inDays < 7) return '${difference.inDays} days ago';
+    return '${date.day}/${date.month}/${date.year}';
   }
 }

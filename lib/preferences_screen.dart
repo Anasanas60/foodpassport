@@ -11,7 +11,6 @@ class PreferencesScreen extends StatefulWidget {
 }
 
 class _PreferencesScreenState extends State<PreferencesScreen> {
-
   bool _avoidNuts = false;
   bool _avoidDairy = false;
   bool _avoidGluten = false;
@@ -26,7 +25,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     super.initState();
     final profileService = Provider.of<UserProfileService>(context, listen: false);
     final allergies = profileService.allergies;
-    final sensitivity = profileService.allergyAlertSensitivity ;
+    final sensitivity = profileService.allergyAlertSensitivity;
     _mapAllergiesToPrefs(allergies);
     _allergyAlertSensitivity = sensitivity;
   }
@@ -71,12 +70,16 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   @override
   Widget build(BuildContext context) {
     final allergyService = Provider.of<AllergyService>(context, listen: false);
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dietary Preferences'),
         actions: [
-          IconButton(icon: const Icon(Icons.save), onPressed: _savePreferences),
+          IconButton(
+            icon: Icon(Icons.save, color: theme.colorScheme.onPrimary),
+            onPressed: _savePreferences,
+          ),
         ],
       ),
       body: ListView(
@@ -85,30 +88,35 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
           CheckboxListTile(
             title: const Text('Avoid Nuts & Peanuts'),
             value: _avoidNuts,
+            activeColor: theme.colorScheme.primary,
             onChanged: (val) => setState(() => _avoidNuts = val ?? false),
           ),
           CheckboxListTile(
             title: const Text('Avoid Dairy'),
             value: _avoidDairy,
+            activeColor: theme.colorScheme.primary,
             onChanged: (val) => setState(() => _avoidDairy = val ?? false),
           ),
           CheckboxListTile(
             title: const Text('Avoid Gluten'),
             value: _avoidGluten,
+            activeColor: theme.colorScheme.primary,
             onChanged: (val) => setState(() => _avoidGluten = val ?? false),
           ),
           CheckboxListTile(
             title: const Text('Vegan Diet'),
             value: _isVegan,
+            activeColor: theme.colorScheme.primary,
             onChanged: (val) => setState(() => _isVegan = val ?? false),
           ),
           const Divider(),
-          const Text('Allergy Alert Sensitivity'),
+          Text('Allergy Alert Sensitivity', style: theme.textTheme.headlineSmall),
           ListTile(
             title: const Text('All Alerts'),
             leading: Radio<String>(
               value: 'all',
               groupValue: _allergyAlertSensitivity,
+              activeColor: theme.colorScheme.secondary,
               onChanged: (val) => setState(() => _allergyAlertSensitivity = val ?? 'moderate+'),
             ),
             trailing: Tooltip(
@@ -121,6 +129,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
             leading: Radio<String>(
               value: 'moderate+',
               groupValue: _allergyAlertSensitivity,
+              activeColor: theme.colorScheme.secondary,
               onChanged: (val) => setState(() => _allergyAlertSensitivity = val ?? 'moderate+'),
             ),
             trailing: Tooltip(
@@ -133,6 +142,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
             leading: Radio<String>(
               value: 'severe+',
               groupValue: _allergyAlertSensitivity,
+              activeColor: theme.colorScheme.secondary,
               onChanged: (val) => setState(() => _allergyAlertSensitivity = val ?? 'moderate+'),
             ),
             trailing: Tooltip(
@@ -141,10 +151,17 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
             ),
           ),
           const Divider(),
-          const Text('Additional Allergies (comma separated)'),
+          Text('Additional Allergies (comma separated)', style: theme.textTheme.headlineSmall),
           TextField(
             controller: _customAllergyController,
-            decoration: const InputDecoration(hintText: 'Sesame, Mustard etc.'),
+            decoration: InputDecoration(
+              hintText: 'Sesame, Mustard etc.',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
             onSubmitted: (val) {
               if (val.isNotEmpty) {
                 setState(() {
@@ -156,12 +173,16 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
               }
             },
           ),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             children: _additionalAllergies
                 .map((a) => Chip(
                       label: Text(a),
                       onDeleted: () => setState(() => _additionalAllergies.remove(a)),
+                      deleteIconColor: theme.colorScheme.primary,
+                      backgroundColor: theme.colorScheme.primary.withAlpha((0.5 * 255).round()),
+                      labelStyle: TextStyle(color: theme.colorScheme.primary),
                     ))
                 .toList(),
           ),

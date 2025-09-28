@@ -8,27 +8,49 @@ class PassportStampsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final gamification = Provider.of<GamificationService>(context);
+    final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Passport Stamps & Badges')),
+      appBar: AppBar(
+        title: const Text('Passport Stamps & Badges'),
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Level: ${gamification.level}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            Text('Points: ${gamification.points}', style: const TextStyle(fontSize: 16)),
+            Text('Level: ${gamification.level}',
+                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+            Text('Points: ${gamification.points}', style: theme.textTheme.titleMedium),
             const SizedBox(height: 20),
-            const Text('Badges:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('Badges:', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
             Wrap(
               spacing: 8,
-              children: gamification.badges.map((badge) => Chip(label: Text(badge))).toList(),
+              children: gamification.badges
+                  .map((badge) => Chip(
+                        label: Text(badge),
+                        backgroundColor: theme.colorScheme.primaryContainer,
+                        labelStyle: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.primary),
+                      ))
+                  .toList(),
             ),
             const SizedBox(height: 20),
-            const Text('Achievements:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('Achievements:', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
             Expanded(
-              child: ListView(
-                children: gamification.achievements.map((ach) => ListTile(title: Text(ach))).toList(),
+              child: ListView.separated(
+                itemCount: gamification.achievements.length,
+                separatorBuilder: (_, __) => const Divider(),
+                itemBuilder: (context, index) => ListTile(
+                  leading: Icon(Icons.check_circle, color: theme.colorScheme.primary),
+                  title: Text(
+                    gamification.achievements[index],
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ),
               ),
             ),
           ],

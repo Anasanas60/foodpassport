@@ -47,10 +47,9 @@ class _MapScreenState extends State<MapScreen> {
 
       if (permission == LocationPermission.deniedForever) {
         throw Exception(
-          'Location permissions are permanently denied, cannot request.');
+            'Location permissions are permanently denied, cannot request.');
       }
 
-      // Permissions granted, simulate loading entries
       await Future.delayed(const Duration(milliseconds: 500));
 
       setState(() {
@@ -64,9 +63,7 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  Future<void> _refreshData() async {
-    await _determinePositionAndLoadEntries();
-  }
+  Future<void> _refreshData() async => _determinePositionAndLoadEntries();
 
   @override
   Widget build(BuildContext context) {
@@ -79,22 +76,22 @@ class _MapScreenState extends State<MapScreen> {
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.explore, color: Color(0xFF4CAF50)),
-            SizedBox(width: 12),
-            Text('Food Discovery Map 🗺️'),
+            Icon(Icons.explore, color: theme.colorScheme.secondary),
+            const SizedBox(width: 12),
+            const Text('Food Discovery Map 🗺️'),
           ],
         ),
-        backgroundColor: const Color(0xFF4CAF50),
-        foregroundColor: Colors.white,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
         elevation: 0,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
+            icon: Icon(Icons.refresh, color: theme.colorScheme.onPrimary),
             onPressed: _refreshData,
             tooltip: 'Refresh Food Map',
           ),
@@ -113,8 +110,8 @@ class _MapScreenState extends State<MapScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.pushNamed(context, '/camera'),
-        backgroundColor: const Color(0xFF4CAF50),
-        foregroundColor: Colors.white,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
         child: const Icon(Icons.camera_alt),
         tooltip: 'Scan New Food',
       ),
@@ -126,14 +123,17 @@ class _MapScreenState extends State<MapScreen> {
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: Color(0xFF4CAF50), width: 2),
+        side: BorderSide(color: theme.colorScheme.primary, width: 2),
       ),
       child: Container(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF4CAF50), Color(0xFF8BC34A)],
+            colors: [
+              theme.colorScheme.primary,
+              theme.colorScheme.secondary,
+            ],
           ),
           borderRadius: BorderRadius.circular(20),
         ),
@@ -147,30 +147,30 @@ class _MapScreenState extends State<MapScreen> {
                   width: 50,
                   height: 50,
                   decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(40),
+                    color: theme.colorScheme.onPrimary.withAlpha(40),
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
+                    border: Border.all(color: theme.colorScheme.onPrimary, width: 2),
                   ),
-                  child: const Icon(Icons.explore, color: Colors.white, size: 30),
+                  child: Icon(Icons.explore, color: theme.colorScheme.onPrimary, size: 30),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'FOOD DISCOVERY MAP',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: theme.colorScheme.onPrimary,
                           letterSpacing: 1,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 4),
                       Text(
                         'Track your culinary discoveries around the world',
-                        style: TextStyle(fontSize: 12, color: Colors.white.withAlpha(204)),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onPrimary.withAlpha(204),
+                        ),
                       ),
                     ],
                   ),
@@ -180,15 +180,18 @@ class _MapScreenState extends State<MapScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildMapStat(foodEntries.length.toString(), 'Food Discoveries', Icons.restaurant),
-                  _buildMapStat(_getUniqueCuisines(foodEntries).length.toString(), 'Cuisines Tried', Icons.public),
-                  _buildMapStat(_getTotalDistance(foodEntries).toStringAsFixed(0), 'Km Traveled*', Icons.airplanemode_active),
+                  _buildMapStat(foodEntries.length.toString(), 'Food Discoveries', Icons.restaurant, theme),
+                  _buildMapStat(_getUniqueCuisines(foodEntries).length.toString(), 'Cuisines Tried', Icons.public, theme),
+                  _buildMapStat(_getTotalDistance(foodEntries).toStringAsFixed(0), 'Km Traveled*', Icons.airplanemode_active, theme),
                 ],
               ),
               const SizedBox(height: 8),
               Text(
                 '*Estimated distance between food locations',
-                style: TextStyle(fontSize: 10, color: Colors.white.withAlpha(178), fontStyle: FontStyle.italic),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onPrimary.withAlpha(178),
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             ],
           ),
@@ -197,35 +200,35 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  Widget _buildMapStat(String value, String label, IconData icon) {
+  Widget _buildMapStat(String value, String label, IconData icon, ThemeData theme) {
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(color: Colors.white.withAlpha(40), shape: BoxShape.circle),
-          child: Icon(icon, color: Colors.white, size: 18),
+          decoration: BoxDecoration(color: theme.colorScheme.onPrimary.withAlpha(40), shape: BoxShape.circle),
+          child: Icon(icon, color: theme.colorScheme.onPrimary, size: 18),
         ),
         const SizedBox(height: 6),
-        Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-        Text(label, style: TextStyle(fontSize: 10, color: Colors.white.withAlpha(204)), textAlign: TextAlign.center),
+        Text(value, style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onPrimary)),
+        Text(label, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onPrimary.withAlpha(204)), textAlign: TextAlign.center),
       ],
     );
   }
 
   Widget _buildContent(ThemeData theme, List<FoodItem> foodEntries, FoodStateService foodState, userProfile) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFF4CAF50)));
+      return Center(child: CircularProgressIndicator(color: theme.colorScheme.primary));
     }
     if (_errorMessage.isNotEmpty) {
-      return Center(child: Text(_errorMessage, style: const TextStyle(color: Colors.red, fontSize: 16)));
+      return Center(child: Text(_errorMessage, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error)));
     }
     if (foodEntries.isEmpty) {
       return Center(child: Text('No Food Discoveries Yet!', style: theme.textTheme.titleMedium));
     }
     return RefreshIndicator(
       onRefresh: _refreshData,
-      backgroundColor: const Color(0xFF4CAF50),
-      color: Colors.white,
+      backgroundColor: theme.colorScheme.primary,
+      color: theme.colorScheme.onPrimary,
       child: ListView.builder(
         itemCount: foodEntries.length,
         itemBuilder: (context, index) {
@@ -247,25 +250,25 @@ class _MapScreenState extends State<MapScreen> {
       elevation: 3,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: hasAllergyRisk ? Colors.orange : const Color(0xFF4CAF50), width: hasAllergyRisk ? 2 : 1),
+        side: BorderSide(color: hasAllergyRisk ? theme.colorScheme.error : theme.colorScheme.primary, width: hasAllergyRisk ? 2 : 1),
       ),
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(colors: [Colors.white, foodColor.withAlpha(25)], begin: Alignment.centerLeft, end: Alignment.centerRight),
+          gradient: LinearGradient(colors: [theme.colorScheme.surface, foodColor.withAlpha(25)], begin: Alignment.centerLeft, end: Alignment.centerRight),
           borderRadius: BorderRadius.circular(16),
         ),
         child: ListTile(
           leading: Container(
             width: 60,
             height: 60,
-            decoration: BoxDecoration(color: foodColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF4CAF50), width: 2)),
+            decoration: BoxDecoration(color: foodColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: theme.colorScheme.primary, width: 2)),
             child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
               Icon(hasAllergyRisk ? Icons.warning : Icons.location_pin, color: Colors.white, size: 20),
               Text('${index + 1}', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
             ]),
           ),
-          title: Text(foodItem.name, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF333333))),
+          title: Text(foodItem.name, style: theme.textTheme.titleMedium?.copyWith(color: const Color(0xFF333333), fontWeight: FontWeight.bold)),
           subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const SizedBox(height: 4),
             Row(children: [
@@ -274,7 +277,7 @@ class _MapScreenState extends State<MapScreen> {
               Expanded(
                   child: Text(
                 _getLocationDescription(position),
-                style: TextStyle(color: Colors.grey[700], fontSize: 12),
+                style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               )),
@@ -283,26 +286,26 @@ class _MapScreenState extends State<MapScreen> {
             Row(children: [
               Icon(Icons.explore, size: 12, color: Colors.grey[600]),
               const SizedBox(width: 4),
-              Text('${position.latitude.toStringAsFixed(4)}°N, ${position.longitude.toStringAsFixed(4)}°E', style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+              Text('${position.latitude.toStringAsFixed(4)}°N, ${position.longitude.toStringAsFixed(4)}°E', style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
             ]),
             Row(children: [
               Icon(Icons.restaurant, size: 12, color: Colors.grey[600]),
               const SizedBox(width: 4),
-              Text('${foodItem.calories.round()} cal • ${_formatDate(foodItem.timestamp)}', style: TextStyle(fontSize: 10, color: Colors.grey[600]))
+              Text('${foodItem.calories.round()} cal • ${_formatDate(foodItem.timestamp)}', style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[600]))
             ]),
             if (hasAllergyRisk)
-              const Padding(
-                padding: EdgeInsets.only(top: 4),
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   '⚠️ Contains allergens',
-                  style: TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.bold),
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error, fontWeight: FontWeight.bold),
                 ),
               )
           ]),
           trailing: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             Icon(Icons.zoom_in_map, color: foodColor, size: 20),
             const SizedBox(height: 4),
-            Text('View', style: TextStyle(fontSize: 10, color: foodColor, fontWeight: FontWeight.bold))
+            Text('View', style: theme.textTheme.bodySmall?.copyWith(color: foodColor, fontWeight: FontWeight.bold))
           ]),
           onTap: () {
             _showFoodDiscoveryDetails(foodItem, foodState);
@@ -322,10 +325,10 @@ class _MapScreenState extends State<MapScreen> {
     showDialog(
       context: context,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Color(0xFF4CAF50), width: 2)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2)),
         child: Container(
           decoration: BoxDecoration(
-            gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Colors.white, Color(0xFFf8f5f0)]),
+            gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Theme.of(context).colorScheme.surface, const Color(0xFFF8F5F0)]),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Padding(
@@ -359,11 +362,11 @@ class _MapScreenState extends State<MapScreen> {
                       Navigator.pop(context);
                       Navigator.push(context, MaterialPageRoute(builder: (context) => RecipeScreen(dishName: foodItem.name)));
                     },
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4CAF50), foregroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24))),
                     child: const Text('View Details'),
                   ),
                 ),
-              ])
+              ]),
             ]),
           ),
         ),
@@ -375,7 +378,7 @@ class _MapScreenState extends State<MapScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: 120, child: Row(children: [Icon(icon, size: 14, color: const Color(0xFF4CAF50)), const SizedBox(width: 6), Text(label, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12))])),
+        SizedBox(width: 120, child: Row(children: [Icon(icon, size: 14, color: Theme.of(context).colorScheme.primary), const SizedBox(width: 6), Text(label, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12))])),
         const SizedBox(width: 8),
         Expanded(child: Text(value, style: const TextStyle(fontSize: 12))),
       ]),

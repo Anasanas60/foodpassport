@@ -56,11 +56,13 @@ class _UserFormScreenState extends State<UserFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Profile'),
         actions: [
-          IconButton(icon: const Icon(Icons.save), onPressed: _saveForm),
+          IconButton(icon: Icon(Icons.save, color: theme.colorScheme.onPrimary), onPressed: _saveForm),
         ],
       ),
       body: Padding(
@@ -71,13 +73,20 @@ class _UserFormScreenState extends State<UserFormScreen> {
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Name'),
+                decoration: InputDecoration(
+                  labelText: 'Name',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
                 validator: (val) => val == null || val.trim().isEmpty ? 'Please enter your name' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _ageController,
-                decoration: const InputDecoration(labelText: 'Age', hintText: 'Enter your age'),
+                decoration: InputDecoration(
+                  labelText: 'Age',
+                  hintText: 'Enter your age',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
                 keyboardType: TextInputType.number,
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
@@ -93,15 +102,21 @@ class _UserFormScreenState extends State<UserFormScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _locationController,
-                decoration: const InputDecoration(labelText: 'Location'),
+                decoration: InputDecoration(
+                  labelText: 'Location',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                initialValue: _selectedLanguage,
+                value: _selectedLanguage,
                 items: ['English', 'Spanish', 'French', 'German', 'Chinese']
                     .map((lang) => DropdownMenuItem(value: lang, child: Text(lang)))
                     .toList(),
-                decoration: const InputDecoration(labelText: 'Language'),
+                decoration: InputDecoration(
+                  labelText: 'Language',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                ),
                 onChanged: (val) => setState(() => _selectedLanguage = val ?? 'English'),
               ),
             ],
