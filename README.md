@@ -113,19 +113,22 @@ cd foodpassport
 flutter pub get
 
 # Configure API keys
-# Add your keys to lib/services/api_config.dart
+# Create a .env file in the root of the project and add your API keys.
+# You can use the .env.example file as a template.
+cp .env.example .env
 
 # Run the app
 flutter run
-🔧 API Configuration
-Create lib/services/api_config.dart:
 
-dart
-class ApiConfig {
-  static const String nutritionixAppId = 'your_nutritionix_app_id';
-  static const String nutritionixAppKey = 'your_nutritionix_app_key';
-  static const String googleTranslateKey = 'your_google_translate_key';
-}
+🔧 API Configuration
+Create a `.env` file in the root of the project with the following content:
+
+# Spoonacular API Key
+SPOONACULAR_API_KEY=your_spoonacular_key_here
+
+# Nutritionix API Credentials
+NUTRITIONIX_APP_ID=your_nutritionix_id_here
+NUTRITIONIX_APP_KEY=your_nutritionix_key_here
 🌍 Use Cases
 For Travelers:
 Menu Decoding: Understand foreign language menus instantly
