@@ -1,6 +1,6 @@
 import 'dart:io';
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../models/food_item.dart' as models;
@@ -8,91 +8,87 @@ import 'emergency_alert_screen.dart';
 import '../services/user_profile_service.dart';
 
 class CameraScreen extends StatefulWidget {
-  const CameraScreen({super.key});
+  final CameraDescription camera;
+
+  const CameraScreen({super.key, required this.camera});
 
   @override
   State<CameraScreen> createState() => _CameraScreenState();
 }
 
-class _CameraScreenState extends State<CameraScreen> {
-  final ImagePicker _imagePicker = ImagePicker();
+class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver {
+  late CameraController _controller;
+  late Future<void> _initializeControllerFuture;
   bool _isProcessing = false;
   bool _isImageCaptured = false;
-  File? _capturedImage;
+  XFile? _capturedImage;
   String? _detectedDish;
   String? _detectedText;
   List<String> _detectedAllergens = [];
   bool _isTranslateMode = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _controller = CameraController(widget.camera, ResolutionPreset.high);
+    _initializeControllerFuture = _controller.initialize();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_controller.value.isInitialized) {
+      return;
+    }
+    if (state == AppLifecycleState.inactive) {
+      _controller.dispose();
+    } else if (state == AppLifecycleState.resumed) {
+      _controller = CameraController(widget.camera, ResolutionPreset.high);
+      _initializeControllerFuture = _controller.initialize();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Camera Preview/Image Background
-          _buildCameraPreview(),
-          
-          // Semi-transparent UI Overlays
+          FutureBuilder<void>(
+            future: _initializeControllerFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.done) {
+                if (_isImageCaptured && _capturedImage != null) {
+                  return SizedBox.expand(
+                    child: Image.file(
+                      File(_capturedImage!.path),
+                      fit: BoxFit.cover,
+                    ),
+                  );
+                }
+                return CameraPreview(_controller);
+              } else {
+                return const Center(child: CircularProgressIndicator());
+              }
+            },
+          ),
           _buildHeaderOverlay(colorScheme),
           _buildRealTimeOverlays(),
           _buildBottomActionBar(colorScheme),
-          
-          // Post-Scan Results Sheet
           if (_isImageCaptured && _capturedImage != null)
             _buildPostScanSheet(context, colorScheme),
         ],
       ),
     );
-  }
-
-  Widget _buildCameraPreview() {
-    if (_isImageCaptured && _capturedImage != null) {
-      // Show captured image
-      return Container(
-        width: double.infinity,
-        height: double.infinity,
-        child: Image.file(
-          _capturedImage!,
-          fit: BoxFit.cover,
-        ),
-      );
-    } else {
-      // Show camera placeholder (in real app, this would be live camera feed)
-      return Container(
-        width: double.infinity,
-        height: double.infinity,
-        color: Colors.grey[900],
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.photo_camera,
-              size: 80,
-              color: Colors.grey[600],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Camera Preview',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 16,
-              ),
-            ),
-            Text(
-              'Point camera at food or menu',
-              style: TextStyle(
-                color: Colors.grey[500],
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
   }
 
   Widget _buildHeaderOverlay(ColorScheme colorScheme) {
@@ -107,7 +103,7 @@ class _CameraScreenState extends State<CameraScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.black.withAlpha(178), // 0.7 opacity
+              Colors.black.withValues(alpha:0.7),
               Colors.transparent,
             ],
           ),
@@ -120,7 +116,7 @@ class _CameraScreenState extends State<CameraScreen> {
                 onPressed: () => Navigator.pop(context),
               ),
               const Spacer(),
-              Text(
+              const Text(
                 'foodpassport',
                 style: TextStyle(
                   color: Colors.white,
@@ -130,12 +126,9 @@ class _CameraScreenState extends State<CameraScreen> {
               ),
               const Spacer(),
               IconButton(
-                icon: Icon(
-                  Icons.flash_on,
-                  color: Colors.white,
-                ),
+                icon: const Icon(Icons.flash_on, color: Colors.white),
                 onPressed: () {
-                  // Toggle flash
+                  _toggleFlash();
                 },
               ),
             ],
@@ -150,17 +143,11 @@ class _CameraScreenState extends State<CameraScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Dish Recognition Overlay
           if (_detectedDish != null && !_isTranslateMode)
             _buildDishRecognitionOverlay(),
-          
-          // Text Translation Overlay
           if (_detectedText != null && _isTranslateMode)
             _buildTextTranslationOverlay(),
-          
-          // Allergy Alert Overlay
-          if (_detectedAllergens.isNotEmpty)
-            _buildAllergyAlertOverlay(),
+          if (_detectedAllergens.isNotEmpty) _buildAllergyAlertOverlay(),
         ],
       ),
     );
@@ -171,7 +158,7 @@ class _CameraScreenState extends State<CameraScreen> {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(229), // 0.9 opacity
+        color: Colors.white.withValues(alpha:0.9),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: Theme.of(context).colorScheme.primary,
@@ -181,16 +168,12 @@ class _CameraScreenState extends State<CameraScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.restaurant,
-            color: Theme.of(context).colorScheme.primary,
-            size: 16,
-          ),
+          Icon(Icons.restaurant, color: Theme.of(context).colorScheme.primary, size: 16),
           const SizedBox(width: 8),
           Text(
             _detectedDish!,
-            style: TextStyle(
-              color: const Color(0xFF333333),
+            style: const TextStyle(
+              color: Color(0xFF333333),
               fontWeight: FontWeight.bold,
               fontSize: 14,
             ),
@@ -205,7 +188,7 @@ class _CameraScreenState extends State<CameraScreen> {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(229), // 0.9 opacity
+        color: Colors.white.withValues(alpha:0.9),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: Theme.of(context).colorScheme.secondary,
@@ -222,7 +205,7 @@ class _CameraScreenState extends State<CameraScreen> {
               color: Theme.of(context).colorScheme.secondary,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Text(
+            child: const Text(
               'Translated',
               style: TextStyle(
                 color: Colors.white,
@@ -234,8 +217,8 @@ class _CameraScreenState extends State<CameraScreen> {
           const SizedBox(height: 8),
           Text(
             _detectedText!,
-            style: TextStyle(
-              color: const Color(0xFF333333),
+            style: const TextStyle(
+              color: Color(0xFF333333),
               fontSize: 14,
             ),
           ),
@@ -249,17 +232,17 @@ class _CameraScreenState extends State<CameraScreen> {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.red.withAlpha(229), // 0.9 opacity
+        color: Colors.red.withValues(alpha:0.9),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.warning, color: Colors.white, size: 16),
+          const Icon(Icons.warning, color: Colors.white, size: 16),
           const SizedBox(width: 8),
           Text(
             'Contains: ${_detectedAllergens.join(', ')}',
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 12,
               fontWeight: FontWeight.bold,
@@ -284,19 +267,18 @@ class _CameraScreenState extends State<CameraScreen> {
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
             colors: [
-              Colors.black.withAlpha(204), // 0.8 opacity
+              Colors.black.withValues(alpha:0.8),
               Colors.transparent,
             ],
           ),
         ),
         child: Column(
           children: [
-            // Mode Toggle
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white.withAlpha(51), // 0.2 opacity
+                color: Colors.white.withValues(alpha:0.2),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -318,8 +300,6 @@ class _CameraScreenState extends State<CameraScreen> {
                 ],
               ),
             ),
-            
-            // Shutter Button
             Container(
               width: 70,
               height: 70,
@@ -328,7 +308,7 @@ class _CameraScreenState extends State<CameraScreen> {
                 border: Border.all(color: Colors.white, width: 3),
               ),
               child: IconButton(
-                icon: Icon(Icons.camera_alt, size: 32, color: Colors.white),
+                icon: const Icon(Icons.camera_alt, size: 32, color: Colors.white),
                 onPressed: _isProcessing ? null : _takePhoto,
               ),
             ),
@@ -382,7 +362,7 @@ class _CameraScreenState extends State<CameraScreen> {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withAlpha(51), // 0.2 opacity
+                color: Colors.black.withValues(alpha:0.2),
                 blurRadius: 16,
                 offset: const Offset(0, -4),
               ),
@@ -390,10 +370,9 @@ class _CameraScreenState extends State<CameraScreen> {
           ),
           child: Padding(
             padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: ListView(
+              controller: scrollController,
               children: [
-                // Header
                 Center(
                   child: Container(
                     width: 40,
@@ -405,24 +384,11 @@ class _CameraScreenState extends State<CameraScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                
-                // Achievement Notification
-                if (_detectedDish != null)
-                  _buildAchievementNotification(),
-                
+                if (_detectedDish != null) _buildAchievementNotification(),
                 const SizedBox(height: 16),
-                
-                // Dish Info
-                if (_detectedDish != null)
-                  _buildDishInfoSection(),
-                
-                // Translation Info
-                if (_detectedText != null)
-                  _buildTranslationSection(),
-                
-                const Spacer(),
-                
-                // Action Buttons
+                if (_detectedDish != null) _buildDishInfoSection(),
+                if (_detectedText != null) _buildTranslationSection(),
+                const SizedBox(height: 24),
                 Row(
                   children: [
                     Expanded(
@@ -463,7 +429,7 @@ class _CameraScreenState extends State<CameraScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withAlpha(25), // 0.1 opacity
+        color: Theme.of(context).colorScheme.primary.withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: Theme.of(context).colorScheme.primary,
@@ -474,11 +440,11 @@ class _CameraScreenState extends State<CameraScreen> {
         children: [
           Icon(Icons.celebration, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 8),
-          Expanded(
+          const Expanded(
             child: Text(
               'Dish Identified! +10 XP',
               style: TextStyle(
-                color: const Color(0xFF333333),
+                color: Color(0xFF333333),
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -501,8 +467,6 @@ class _CameraScreenState extends State<CameraScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        
-        // Ingredients
         if (_detectedAllergens.isNotEmpty)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -515,17 +479,16 @@ class _CameraScreenState extends State<CameraScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 4,
-                children: _detectedAllergens.map((allergen) => Chip(
-                  label: Text(allergen),
-                  backgroundColor: Colors.grey[100],
-                )).toList(),
+                children: _detectedAllergens
+                    .map((allergen) => Chip(
+                          label: Text(allergen),
+                          backgroundColor: Colors.grey[100],
+                        ))
+                    .toList(),
               ),
             ],
           ),
-        
         const SizedBox(height: 16),
-        
-        // Nutrition Info (placeholder)
         const Text(
           'Nutrition Information:',
           style: TextStyle(fontWeight: FontWeight.w600),
@@ -557,7 +520,7 @@ class _CameraScreenState extends State<CameraScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.secondary.withAlpha(25), // 0.1 opacity
+            color: Theme.of(context).colorScheme.secondary.withValues(alpha:0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(_detectedText!),
@@ -567,66 +530,53 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _takePhoto() async {
-    final image = await _imagePicker.pickImage(
-      source: ImageSource.camera,
-      maxWidth: 1200,
-      maxHeight: 1200,
-      imageQuality: 85,
-    );
-    
-    if (image != null) {
-      await _processImage(image);
-    }
-  }
-
-  Future<void> _processImage(XFile image) async {
+    if (!_controller.value.isInitialized) return;
     setState(() {
       _isProcessing = true;
     });
-
     try {
-      _capturedImage = File(image.path);
-      
-      // Simulate AI processing with mock data
+      final image = await _controller.takePicture();
+      _capturedImage = image;
+      _isImageCaptured = true;
+
+      // Simulate AI processing with mock data delay
       await Future.delayed(const Duration(seconds: 2));
-      
-      // Mock detection results
       setState(() {
-        _isImageCaptured = true;
-        _isProcessing = false;
-        
         if (_isTranslateMode) {
           _detectedText = 'Grilled Salmon with Lemon Butter Sauce';
           _detectedAllergens = ['fish', 'dairy'];
+          _detectedDish = null;
         } else {
           _detectedDish = 'French Crêpe';
           _detectedAllergens = ['eggs', 'dairy', 'gluten'];
+          _detectedText = null;
         }
-        
-        // Check for user allergies
         _checkUserAllergies();
+        _isProcessing = false;
       });
-      
     } catch (e) {
       setState(() {
         _isProcessing = false;
       });
-      _showErrorDialog('Failed to analyze image: $e');
+      _showErrorDialog('Failed to capture image: $e');
     }
+  }
+
+  void _toggleFlash() {
+    if (!_controller.value.isInitialized) return;
+    _controller.setFlashMode(
+      _controller.value.flashMode == FlashMode.torch ? FlashMode.off : FlashMode.torch,
+    );
+    setState(() {});
   }
 
   void _checkUserAllergies() {
     final userProfileService = Provider.of<UserProfileService>(context, listen: false);
     final userProfile = userProfileService.userProfile;
-    
     if (userProfile != null) {
       final userAllergies = userProfile.allergies;
-      final matchingAllergens = _detectedAllergens.where(
-        (allergen) => userAllergies.contains(allergen)
-      ).toList();
-      
+      final matchingAllergens = _detectedAllergens.where((a) => userAllergies.contains(a)).toList();
       if (matchingAllergens.isNotEmpty) {
-        // Show emergency alert
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _navigateToEmergencyScreen();
         });
@@ -637,7 +587,7 @@ class _CameraScreenState extends State<CameraScreen> {
   void _navigateToEmergencyScreen() {
     final foodItem = models.FoodItem(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: _detectedDish ?? 'Unknown Dish',
+      name: _detectedDish ?? _detectedText ?? 'Unknown Dish',
       confidenceScore: 0.8,
       calories: 0.0,
       protein: 0.0,
@@ -645,10 +595,10 @@ class _CameraScreenState extends State<CameraScreen> {
       fat: 0.0,
       source: 'camera',
       detectedAllergens: _detectedAllergens,
-      imagePath: _capturedImage?.path ?? '', // FIXED: Provide empty string as fallback
+      imagePath: _capturedImage?.path ?? '',
       timestamp: DateTime.now(),
     );
-    
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -658,7 +608,6 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void _saveToJournal() {
-    // Implement save to journal functionality
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Saved to Food Journal')),
     );
@@ -671,10 +620,7 @@ class _CameraScreenState extends State<CameraScreen> {
         title: const Text('Analysis Failed'),
         content: Text(message),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK')
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
         ],
       ),
     );

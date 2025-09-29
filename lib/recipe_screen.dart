@@ -281,7 +281,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: colorScheme.surfaceVariant,
+                color: colorScheme.surfaceContainerHighest,
                 shape: BoxShape.circle,
               ),
               child: Icon(

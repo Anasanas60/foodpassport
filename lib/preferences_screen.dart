@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/user_profile_service.dart';
-import '../services/allergy_service.dart';
 
 class PreferencesScreen extends StatefulWidget {
   const PreferencesScreen({super.key});
@@ -52,7 +51,6 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
 
   Future<void> _savePreferences() async {
     final profileService = Provider.of<UserProfileService>(context, listen: false);
-
     List<String> newAllergies = [];
     if (_avoidNuts) newAllergies.addAll(['nuts', 'peanuts']);
     if (_avoidDairy) newAllergies.addAll(['dairy', 'milk']);
@@ -64,7 +62,6 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     await profileService.updateAllergies(newAllergies.toSet().toList());
     await profileService.updateAllergyAlertSensitivity(_allergyAlertSensitivity);
 
-    // Show styled success message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -112,27 +109,14 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Dietary Restrictions Card
             _buildDietaryRestrictionsCard(theme, colorScheme),
-            
             const SizedBox(height: 20),
-            
-            // Allergy Sensitivity Card
             _buildAllergySensitivityCard(theme, colorScheme),
-            
             const SizedBox(height: 20),
-            
-            // Additional Allergies Card
             _buildAdditionalAllergiesCard(theme, colorScheme),
-            
             const SizedBox(height: 20),
-            
-            // Language & Cuisine Preferences
             _buildPreferencesCard(theme, colorScheme),
-            
             const SizedBox(height: 30),
-            
-            // Save Button
             _buildSaveButton(colorScheme),
           ],
         ),
@@ -155,15 +139,11 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                 const SizedBox(width: 12),
                 Text(
                   'Dietary Restrictions',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            
-            // Common Allergies
             _buildPreferenceSwitch(
               title: 'Avoid Nuts & Peanuts',
               subtitle: 'Tree nuts, peanuts, and related products',
@@ -171,7 +151,6 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
               onChanged: (val) => setState(() => _avoidNuts = val ?? false),
               colorScheme: colorScheme,
             ),
-            
             _buildPreferenceSwitch(
               title: 'Avoid Dairy',
               subtitle: 'Milk, cheese, yogurt, and dairy products',
@@ -179,7 +158,6 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
               onChanged: (val) => setState(() => _avoidDairy = val ?? false),
               colorScheme: colorScheme,
             ),
-            
             _buildPreferenceSwitch(
               title: 'Avoid Gluten',
               subtitle: 'Wheat, barley, rye, and gluten-containing products',
@@ -187,10 +165,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
               onChanged: (val) => setState(() => _avoidGluten = val ?? false),
               colorScheme: colorScheme,
             ),
-            
             const SizedBox(height: 8),
-            
-            // Dietary Preferences
             _buildPreferenceSwitch(
               title: 'Vegetarian',
               subtitle: 'No meat or fish',
@@ -203,7 +178,6 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
               },
               colorScheme: colorScheme,
             ),
-            
             _buildPreferenceSwitch(
               title: 'Vegan',
               subtitle: 'No animal products including dairy and eggs',
@@ -229,7 +203,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     required String title,
     required String subtitle,
     required bool value,
-    required Function(bool?) onChanged,
+    required ValueChanged<bool?> onChanged,
     required ColorScheme colorScheme,
   }) {
     return Padding(
@@ -240,8 +214,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
+                Text(title,
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
@@ -249,12 +222,8 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
+                Text(subtitle,
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -262,7 +231,8 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: colorScheme.primary,
+            activeThumbColor: colorScheme.primary,
+            activeTrackColor: colorScheme.primary.withAlpha(100),
           ),
         ],
       ),
@@ -282,8 +252,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
               children: [
                 Icon(Icons.warning, color: colorScheme.primary, size: 24),
                 const SizedBox(width: 12),
-                Text(
-                  'Allergy Alert Sensitivity',
+                Text('Allergy Alert Sensitivity',
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -291,41 +260,51 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            
-            Text(
-              'Choose how sensitive you want allergy alerts to be:',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+            Text('Choose how sensitive you want allergy alerts to be:',
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
-            
-            _buildSensitivityOption(
-              title: 'All Alerts',
-              subtitle: 'Get notified about all potential allergens',
-              value: 'all',
+            RadioGroup<String>(
               groupValue: _allergyAlertSensitivity,
-              color: Colors.blue,
-              onChanged: (val) => setState(() => _allergyAlertSensitivity = val!),
-            ),
-            
-            _buildSensitivityOption(
-              title: 'Moderate & Severe',
-              subtitle: 'Only moderate and severe allergy risks',
-              value: 'moderate',
-              groupValue: _allergyAlertSensitivity,
-              color: Colors.orange,
-              onChanged: (val) => setState(() => _allergyAlertSensitivity = val!),
-            ),
-            
-            _buildSensitivityOption(
-              title: 'Severe Only',
-              subtitle: 'Only life-threatening allergy risks',
-              value: 'severe',
-              groupValue: _allergyAlertSensitivity,
-              color: Colors.red,
-              onChanged: (val) => setState(() => _allergyAlertSensitivity = val!),
+              onChanged: (val) {
+                if (val != null) setState(() => _allergyAlertSensitivity = val);
+              },
+              child: Column(
+                children: [
+                  _buildSensitivityOption(
+                    title: 'All Alerts',
+                    subtitle: 'Get notified about all potential allergens',
+                    value: 'all',
+                    groupValue: _allergyAlertSensitivity,
+                    color: Colors.blue,
+                    onChanged: (val) {
+                      if (val != null) setState(() => _allergyAlertSensitivity = val);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  _buildSensitivityOption(
+                    title: 'Moderate & Severe',
+                    subtitle: 'Only moderate and severe allergy risks',
+                    value: 'moderate',
+                    groupValue: _allergyAlertSensitivity,
+                    color: Colors.orange,
+                    onChanged: (val) {
+                      if (val != null) setState(() => _allergyAlertSensitivity = val);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  _buildSensitivityOption(
+                    title: 'Severe Only',
+                    subtitle: 'Only life-threatening allergy risks',
+                    value: 'severe',
+                    groupValue: _allergyAlertSensitivity,
+                    color: Colors.red,
+                    onChanged: (val) {
+                      if (val != null) setState(() => _allergyAlertSensitivity = val);
+                    },
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -339,62 +318,73 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     required String value,
     required String groupValue,
     required Color color,
-    required Function(String?) onChanged,
+    required ValueChanged<String?> onChanged,
   }) {
     final isSelected = value == groupValue;
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isSelected ? color.withAlpha(20) : Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isSelected ? color : Colors.grey[300]!,
-          width: isSelected ? 2 : 1,
+
+    return InkWell(
+      onTap: () => onChanged(value),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withAlpha(20) : Colors.grey[50],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? color : Colors.grey[300]!,
+            width: isSelected ? 2 : 1,
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: isSelected ? color : Colors.grey[400],
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                    color: const Color(0xFF333333),
-                  ),
+        child: Row(
+          children: [
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? color : Colors.grey[400]!,
+                  width: 2,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
+              ),
+              child: isSelected
+                  ? Center(
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: color,
+                        ),
+                      ),
+                    )
+                  : null,
             ),
-          ),
-          Radio<String>(
-            value: value,
-            groupValue: groupValue,
-            onChanged: onChanged,
-            activeColor: color,
-          ),
-        ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      color: Color(0xFF333333),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(subtitle,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -412,8 +402,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
               children: [
                 Icon(Icons.medical_services, color: colorScheme.primary, size: 24),
                 const SizedBox(width: 12),
-                Text(
-                  'Additional Allergies',
+                Text('Additional Allergies',
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -421,16 +410,10 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            
-            Text(
-              'Add any other allergies (comma separated):',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+            Text('Add any other allergies (comma separated):',
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
             const SizedBox(height: 12),
-            
             TextField(
               controller: _customAllergyController,
               decoration: InputDecoration(
@@ -466,17 +449,10 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                 }
               },
             ),
-            
             const SizedBox(height: 16),
-            
             if (_additionalAllergies.isNotEmpty) ...[
-              Text(
-                'Your additional allergies:',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: const Color(0xFF333333),
-                ),
+              Text('Your additional allergies:',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: const Color(0xFF333333)),
               ),
               const SizedBox(height: 8),
               Wrap(
@@ -512,17 +488,12 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
               children: [
                 Icon(Icons.settings, color: colorScheme.primary, size: 24),
                 const SizedBox(width: 12),
-                Text(
-                  'App Preferences',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                Text('App Preferences',
+                  style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            
-            // Language Preference
             _buildDropdownPreference(
               title: 'Preferred Language',
               value: _selectedLanguage,
@@ -530,10 +501,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
               onChanged: (val) => setState(() => _selectedLanguage = val!),
               colorScheme: colorScheme,
             ),
-            
             const SizedBox(height: 16),
-            
-            // Cuisine Preference
             _buildDropdownPreference(
               title: 'Favorite Cuisine',
               value: _selectedCuisine,
@@ -557,13 +525,8 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-            color: Color(0xFF333333),
-          ),
+        Text(title,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: Color(0xFF333333)),
         ),
         const SizedBox(height: 8),
         Container(
@@ -578,12 +541,10 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
             onChanged: onChanged,
             isExpanded: true,
             underline: const SizedBox(),
-            items: items.map((String item) {
-              return DropdownMenuItem<String>(
-                value: item,
-                child: Text(item),
-              );
-            }).toList(),
+            items: items.map((item) => DropdownMenuItem<String>(
+              value: item,
+              child: Text(item),
+            )).toList(),
           ),
         ),
       ],
@@ -602,12 +563,8 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           elevation: 4,
         ),
-        child: const Text(
-          'Save Preferences',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+        child: const Text('Save Preferences',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
       ),
     );

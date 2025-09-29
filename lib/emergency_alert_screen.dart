@@ -195,12 +195,12 @@ class EmergencyAlertScreen extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               elevation: 4,
             ),
-            child: Row(
+            child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.emergency, size: 24),
-                const SizedBox(width: 12),
-                const Text(
+                SizedBox(width: 12),
+                Text(
                   'CALL FOR HELP NOW',
                   style: TextStyle(
                     fontSize: 18,
@@ -224,12 +224,12 @@ class EmergencyAlertScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             ),
-            child: Row(
+            child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.person, size: 20),
-                const SizedBox(width: 12),
-                const Text(
+                SizedBox(width: 12),
+                Text(
                   'ALERT RESTAURANT STAFF',
                   style: TextStyle(
                     fontSize: 16,
@@ -252,12 +252,12 @@ class EmergencyAlertScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             ),
-            child: Row(
+            child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.location_on, size: 20),
-                const SizedBox(width: 12),
-                const Text(
+                SizedBox(width: 12),
+                Text(
                   'SHARE MY LOCATION',
                   style: TextStyle(
                     fontSize: 16,
@@ -482,11 +482,11 @@ class EmergencyAlertScreen extends StatelessWidget {
   void _callForHelp(BuildContext context, List<String> allergens) async {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
+        content: const Row(
           children: [
             Icon(Icons.emergency, color: Colors.white),
-            const SizedBox(width: 8),
-            Text('🚑 Alerting emergency services about ${allergens.join(", ")}'),
+            SizedBox(width: 8),
+            Text('🚑 Alerting emergency services about allergens'),
           ],
         ),
         backgroundColor: Colors.red[700],
@@ -517,11 +517,11 @@ class EmergencyAlertScreen extends StatelessWidget {
   void _alertStaff(BuildContext context, List<String> allergens) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
+        content: const Row(
           children: [
             Icon(Icons.person, color: Colors.white),
-            const SizedBox(width: 8),
-            Text('Alerting restaurant staff about ${allergens.join(", ")}'),
+            SizedBox(width: 8),
+            Text('Alerting restaurant staff about allergens'),
           ],
         ),
         backgroundColor: Colors.orange[700],
@@ -532,16 +532,16 @@ class EmergencyAlertScreen extends StatelessWidget {
 
   void _shareLocation(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Row(
+      SnackBar(
+        content: const Row(
           children: [
             Icon(Icons.location_on, color: Colors.white),
             SizedBox(width: 8),
             Text('Sharing your location with emergency contacts'),
           ],
         ),
-        backgroundColor: Colors.blue[700],
-        duration: Duration(seconds: 3),
+        backgroundColor: Colors.blue.shade700,
+        duration: const Duration(seconds: 3),
       ),
     );
   }

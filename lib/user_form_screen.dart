@@ -86,7 +86,7 @@ class _UserFormScreenState extends State<UserFormScreen> {
     // Calculate statistics
     final totalDishes = foodState.foodHistory.length;
     final completedChallenges = 7; // Placeholder
-    final exploredCountries = 5; // Placeholder
+    
 
     if (_isEditing) {
       return _buildEditForm(theme, colorScheme);
@@ -537,7 +537,7 @@ class _UserFormScreenState extends State<UserFormScreen> {
               
               // Language
               DropdownButtonFormField<String>(
-                value: _selectedLanguage,
+                initialValue: _selectedLanguage,
                 items: ['English', 'Spanish', 'French', 'German', 'Chinese', 'Japanese', 'Thai']
                     .map((lang) => DropdownMenuItem(value: lang, child: Text(lang)))
                     .toList(),
