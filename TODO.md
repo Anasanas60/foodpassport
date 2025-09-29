@@ -1,0 +1,9 @@
+- [x] Remove unused import 'package:mockito/mockito.dart' from test/widget_test.dart
+- [x] Fix CameraScreen constructor: change camera: null to camera: mockCameras[0] and remove const
+- [x] Add id parameter to first FoodItem constructor
+- [x] Change addFoodEntry to addToHistory in first test
+- [x] Fix second CameraScreen constructor similarly
+- [x] Add id parameter to second FoodItem constructor
+- [x] Change addFoodEntry to addToHistory in second test
+- [x] Update widget_test.dart to remove camera tests and fix FoodItem constructors
+- [x] Run flutter test to verify all tests pass

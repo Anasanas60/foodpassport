@@ -8,10 +8,7 @@ import 'package:foodpassport/food_journal_screen.dart';
 import 'package:foodpassport/models/food_item.dart';
 
 void main() {
-
   group('Food Passport App Tests', () {
-
-
     testWidgets('Food journal screen displays empty state', (WidgetTester tester) async {
       await tester.pumpWidget(
         MultiProvider(
@@ -67,8 +64,6 @@ void main() {
       expect(find.text('Allergy'), findsOneWidget);
     });
 
-
-
     testWidgets('Analytics button is shown when entries exist', (WidgetTester tester) async {
       final mockFoodItem = FoodItem(
         id: 'test-id-2',
@@ -101,6 +96,30 @@ void main() {
 
       // Verify analytics button is present
       expect(find.byIcon(Icons.analytics), findsOneWidget);
+    });
+
+    testWidgets('Navigation to camera screen works', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => UserProfileService()),
+            ChangeNotifierProvider(create: (_) => FoodStateService()),
+          ],
+          child: MaterialApp(
+            home: const FoodJournalScreen(),
+            routes: {
+              '/camera': (context) => const Scaffold(body: Center(child: Text('Camera Screen'))),
+            },
+          ),
+        ),
+      );
+
+      // Tap the floating action button to navigate to camera (find by type)
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      // Verify navigation to camera screen
+      expect(find.text('Camera Screen'), findsOneWidget);
     });
   });
 }

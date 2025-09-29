@@ -142,22 +142,12 @@ class _CulturalInsightsScreenState extends State<CulturalInsightsScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
       appBar: AppBar(
-        title: Text(
-          'Cultural Insights',
-          style: TextStyle(
-            color: const Color(0xFF333333),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 2,
+        title: Text('Cultural Insights'),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Color(0xFF333333)),
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh, color: const Color(0xFF333333)),
+            icon: Icon(Icons.refresh),
             onPressed: _loadCulturalData,
             tooltip: 'Reload Cultural Data',
           ),
@@ -176,21 +166,16 @@ class _CulturalInsightsScreenState extends State<CulturalInsightsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation(const Color(0xFFFF6F61)),
-          ),
+          CircularProgressIndicator(),
           const SizedBox(height: 20),
           Text(
             'Discovering Cultural Story',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF333333),
-            ),
+            style: theme.textTheme.headlineSmall,
           ),
           const SizedBox(height: 8),
           Text(
             'Uncovering the heritage behind ${widget.dishName}',
-            style: theme.textTheme.bodyMedium?.copyWith(color: const Color(0xFF666666)),
+            style: theme.textTheme.bodyMedium,
             textAlign: TextAlign.center,
           ),
         ],
@@ -205,31 +190,23 @@ class _CulturalInsightsScreenState extends State<CulturalInsightsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.travel_explore, size: 80, color: const Color(0xFF8BC34A)),
+            Icon(Icons.travel_explore, size: 80, color: theme.colorScheme.secondary),
             const SizedBox(height: 20),
             Text(
               'Cultural Journey Unavailable',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF333333),
-              ),
+              style: theme.textTheme.headlineSmall,
             ),
             const SizedBox(height: 12),
             Text(
               _errorMessage,
-              style: theme.textTheme.bodyMedium?.copyWith(color: const Color(0xFF666666)),
+              style: theme.textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: _loadCulturalData,
-              icon: const Icon(Icons.explore, color: Colors.white),
-              label: const Text('Explore Again', style: TextStyle(color: Colors.white)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8BC34A),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              ),
+              icon: const Icon(Icons.explore),
+              label: const Text('Explore Again'),
             ),
           ],
         ),
@@ -273,17 +250,20 @@ class _CulturalInsightsScreenState extends State<CulturalInsightsScreen> {
   }
 
   Widget _buildCulturalHeroCard(Map<String, dynamic> data, bool hasRealData) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFFF6F61), Color(0xFFFF8A80)],
+          colors: [colorScheme.primary, colorScheme.primary.withValues(alpha: 0.8)],
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFFF6F61).withAlpha(80),
+            color: colorScheme.primary.withAlpha(80),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -299,9 +279,9 @@ class _CulturalInsightsScreenState extends State<CulturalInsightsScreen> {
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(40),
+                    color: colorScheme.onPrimary.withAlpha(40),
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
+                    border: Border.all(color: colorScheme.onPrimary, width: 2),
                   ),
                   child: Center(
                     child: Text(
@@ -317,19 +297,12 @@ class _CulturalInsightsScreenState extends State<CulturalInsightsScreen> {
                     children: [
                       Text(
                         data['origin'],
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: textTheme.headlineSmall?.copyWith(color: colorScheme.onPrimary),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Culinary Origin',
-                        style: TextStyle(
-                          color: Colors.white.withAlpha(204),
-                          fontSize: 14,
-                        ),
+                        style: textTheme.bodyMedium?.copyWith(color: colorScheme.onPrimary.withAlpha(204)),
                       ),
                     ],
                   ),
@@ -337,16 +310,12 @@ class _CulturalInsightsScreenState extends State<CulturalInsightsScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(40),
+                    color: colorScheme.onPrimary.withAlpha(40),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     hasRealData ? 'Verified' : 'AI Insight',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: textTheme.labelSmall?.copyWith(color: colorScheme.onPrimary, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -361,10 +330,12 @@ class _CulturalInsightsScreenState extends State<CulturalInsightsScreen> {
   }
 
   Widget _buildCountryHighlights(Map<String, dynamic> countryInfo) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(30),
+        color: colorScheme.onPrimary.withAlpha(30),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -382,28 +353,26 @@ class _CulturalInsightsScreenState extends State<CulturalInsightsScreen> {
   }
 
   Widget _buildCountryStat(String label, String value) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Column(
       children: [
         Text(
           value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
+          style: textTheme.bodyMedium?.copyWith(color: colorScheme.onPrimary, fontWeight: FontWeight.bold),
         ),
         Text(
           label,
-          style: TextStyle(
-            color: Colors.white.withAlpha(178),
-            fontSize: 10,
-          ),
+          style: textTheme.labelSmall?.copyWith(color: colorScheme.onPrimary.withAlpha(178)),
         ),
       ],
     );
   }
 
   Widget _buildQuickFactsGrid(Map<String, dynamic> data) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return GridView(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -418,34 +387,34 @@ class _CulturalInsightsScreenState extends State<CulturalInsightsScreen> {
           'Difficulty',
           data['difficulty'],
           Icons.auto_awesome,
-          const Color(0xFFFF6F61),
+          colorScheme.primary,
         ),
         _buildQuickFactCard(
           'Popularity',
           data['popularity'],
           Icons.trending_up,
-          const Color(0xFF8BC34A),
+          colorScheme.secondary,
         ),
         _buildQuickFactCard(
           'Cultural Impact',
           'Significant',
           Icons.public,
-          const Color(0xFFFF6F61),
+          colorScheme.primary,
         ),
         _buildQuickFactCard(
           'Heritage',
           'Traditional',
           Icons.history_edu,
-          const Color(0xFF8BC34A),
+          colorScheme.secondary,
         ),
       ],
     );
   }
 
   Widget _buildQuickFactCard(String title, String value, IconData icon, Color color) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -463,18 +432,11 @@ class _CulturalInsightsScreenState extends State<CulturalInsightsScreen> {
             const SizedBox(height: 8),
             Text(
               value,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF333333),
-              ),
+              style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 10,
-                color: Color(0xFF666666),
-              ),
+              style: textTheme.labelSmall,
             ),
           ],
         ),
@@ -483,43 +445,45 @@ class _CulturalInsightsScreenState extends State<CulturalInsightsScreen> {
   }
 
   Widget _buildCulturalSections(Map<String, dynamic> data) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Column(
       children: [
         _buildCulturalSection(
           'Cultural Significance',
           Icons.celebration,
           data['culturalInfo'],
-          const Color(0xFFFF6F61),
+          colorScheme.primary,
         ),
         const SizedBox(height: 16),
         _buildCulturalSection(
           'Historical Journey',
           Icons.history,
           data['history'],
-          const Color(0xFF8BC34A),
+          colorScheme.secondary,
         ),
         const SizedBox(height: 16),
         _buildCulturalSection(
           'Dining Traditions',
           Icons.emoji_people,
           data['etiquette'],
-          const Color(0xFFFF6F61),
+          colorScheme.primary,
         ),
         const SizedBox(height: 16),
         _buildCulturalSection(
           'Cultural Gem',
           Icons.emoji_events,
           data['funFact'],
-          const Color(0xFF8BC34A),
+          colorScheme.secondary,
         ),
       ],
     );
   }
 
   Widget _buildCulturalSection(String title, IconData icon, String content, Color color) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -541,20 +505,12 @@ class _CulturalInsightsScreenState extends State<CulturalInsightsScreen> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF333333),
-                    ),
+                    style: textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     content,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF666666),
-                      height: 1.4,
-                    ),
+                    style: textTheme.bodyMedium?.copyWith(height: 1.4),
                   ),
                 ],
               ),
@@ -566,11 +522,11 @@ class _CulturalInsightsScreenState extends State<CulturalInsightsScreen> {
   }
 
   Widget _buildIngredientsSection(Map<String, dynamic> data) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final ingredients = data['ingredients'] as List<String>? ?? [];
     
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -578,15 +534,11 @@ class _CulturalInsightsScreenState extends State<CulturalInsightsScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.restaurant, color: const Color(0xFFFF6F61)),
+                Icon(Icons.restaurant, color: colorScheme.primary),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Key Ingredients & Characteristics',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF333333),
-                  ),
+                  style: textTheme.titleMedium,
                 ),
               ],
             ),
@@ -597,19 +549,15 @@ class _CulturalInsightsScreenState extends State<CulturalInsightsScreen> {
                 runSpacing: 8,
                 children: ingredients.map((ingredient) => Chip(
                   label: Text(ingredient),
-                  backgroundColor: const Color(0xFFFF6F61).withAlpha(25),
-                  labelStyle: const TextStyle(color: Color(0xFFFF6F61)),
+                  backgroundColor: colorScheme.primary.withAlpha(25),
+                  labelStyle: TextStyle(color: colorScheme.primary),
                 )).toList(),
               ),
               const SizedBox(height: 12),
             ],
-            const Text(
+            Text(
               'This dish represents the unique flavors and cooking techniques of its cultural origin.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF666666),
-                fontStyle: FontStyle.italic,
-              ),
+              style: textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
             ),
           ],
         ),
@@ -618,25 +566,24 @@ class _CulturalInsightsScreenState extends State<CulturalInsightsScreen> {
   }
 
   Widget _buildDataSourceFooter(bool hasRealData) {
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F0F0),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          Icon(Icons.info, size: 16, color: const Color(0xFF666666)),
+          Icon(Icons.info, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               hasRealData
                   ? 'Cultural insights sourced from global culinary databases and cultural research'
                   : 'AI-powered cultural analysis based on dish characteristics and regional cuisine patterns',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF666666),
-              ),
+              style: textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
         ],

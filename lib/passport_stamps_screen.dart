@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/GamificationService.dart';
+import '../services/gamification_service.dart';
 
 class PassportStampsScreen extends StatefulWidget {
   const PassportStampsScreen({super.key});

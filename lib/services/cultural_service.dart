@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../utils/logger.dart';
 
 class CulturalService {
   static Future<Map<String, dynamic>?> getCulturalInsights(String dishName) async {
@@ -22,7 +23,7 @@ class CulturalService {
       
       return _generateFallbackCulturalData(dishName);
     } catch (e) {
-      print('Error fetching cultural data: $e');
+      logger.severe('Error fetching cultural data: $e');
       return _generateFallbackCulturalData(dishName);
     }
   }

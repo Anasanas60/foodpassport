@@ -1,6 +1,13 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class NutritionixConfig {
-  static const String appId = 'e9ec091f';  // Your Nutritionix Application ID
-  static const String appKey = '1c7ff5c00fbfe73f21235865e5cf6d16';  // Your Nutritionix Application Key
+  static String get appId {
+    return dotenv.env['NUTRITIONIX_APP_ID'] ?? '';
+  }
+
+  static String get appKey {
+    return dotenv.env['NUTRITIONIX_APP_KEY'] ?? '';
+  }
 
   // Optionally add base URL or other constants if needed
   static const String baseUrl = 'https://trackapi.nutritionix.com/v2/natural/nutrients';

@@ -1,65 +1,158 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
-import '../models/recipe_data.dart'; // ADDED: Import RecipeData
+import '../models/recipe_data.dart';
+import '../utils/logger.dart';
 
 class RecipeService {
-  static Future<RecipeData?> getAIRecipe(
+  static Future<RecipeData> getAIRecipe(
     String dishName, {
     String? cuisineType,
     List<String> dietaryRestrictions = const [],
   }) async {
     try {
-      print('🔍 Searching Spoonacular for recipe: $dishName');
-      
-      final recipe = await _trySpoonacularRecipeSearch(dishName, cuisineType, dietaryRestrictions) 
-          ?? await _tryMealDbRecipe(dishName)
-          ?? await _generateFallbackRecipe(dishName, cuisineType, dietaryRestrictions);
-      
-      print('✅ Recipe found: ${recipe.name}');
-      return recipe;
+      // Try fetching from Spoonacular first
+      final spoonacularRecipe = await _trySpoonacularRecipeSearch(dishName, cuisineType, dietaryRestrictions);
+      if (spoonacularRecipe != null) {
+        logger.info('Recipe found via Spoonacular: ${spoonacularRecipe.name}');
+        return spoonacularRecipe;
+      }
+
+      // Fallback to TheMealDB
+      final mealDbRecipe = await _tryMealDbRecipe(dishName);
+      if (mealDbRecipe != null) {
+        logger.info('Recipe found via TheMealDB: ${mealDbRecipe.name}');
+        return mealDbRecipe;
+      }
+
+      // If all else fails, generate a fallback
+      logger.warning('Could not find recipe online, generating fallback.');
+      return _generateFallbackRecipe(dishName, cuisineType, dietaryRestrictions);
+    } on SocketException {
+      logger.severe('Network error: No internet connection.');
+      return _generateFallbackRecipe(dishName, cuisineType, dietaryRestrictions, error: 'Network error');
+    } on TimeoutException {
+      logger.severe('Network error: Request timed out.');
+      return _generateFallbackRecipe(dishName, cuisineType, dietaryRestrictions, error: 'Network timeout');
     } catch (e) {
-      print('❌ Recipe service error: $e');
-      return await _generateFallbackRecipe(dishName, cuisineType, dietaryRestrictions);
+      logger.severe('An unexpected error occurred in getAIRecipe: $e');
+      return _generateFallbackRecipe(dishName, cuisineType, dietaryRestrictions, error: 'Unexpected error');
     }
   }
 
   // Spoonacular recipe search
   static Future<RecipeData?> _trySpoonacularRecipeSearch(
-    String dishName, 
-    String? cuisineType, 
-    List<String> restrictions
+    String dishName,
+    String? cuisineType,
+    List<String> restrictions,
   ) async {
+    if (!ApiConfig.isSpoonacularKeyValid) {
+      logger.warning('Spoonacular API key is not valid. Skipping search.');
+      return null;
+    }
+
+    final queryParameters = {
+      'apiKey': ApiConfig.spoonacularApiKey,
+      'query': dishName,
+      'number': '1',
+      'addRecipeInformation': 'true',
+      'fillIngredients': 'true',
+      'instructionsRequired': 'true',
+      if (cuisineType != null && cuisineType.isNotEmpty) 'cuisine': cuisineType,
+      if (restrictions.isNotEmpty) 'intolerances': restrictions.join(','),
+    };
+
     try {
-      var url = '${ApiConfig.spoonacularBaseUrl}/recipes/complexSearch'
-        '?apiKey=${ApiConfig.spoonacularApiKey}'
-        '&query=${Uri.encodeComponent(dishName)}'
-        '&number=2'
-        '&addRecipeInformation=true'
-        '&fillIngredients=true'
-        '&instructionsRequired=true';
+      final uri = Uri.https('api.spoonacular.com', '/recipes/complexSearch', queryParameters);
+      final response = await http.get(uri).timeout(const Duration(seconds: ApiConfig.spoonacularRequestTimeout));
 
-      if (cuisineType != null && cuisineType.isNotEmpty) {
-        url += '&cuisine=${Uri.encodeComponent(cuisineType)}';
-      }
-
-      final response = await http.get(Uri.parse(url));
-      
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['results'] != null && data['results'].isNotEmpty) {
-          return _parseSpoonacularRecipe(data['results'][0]); // FIXED: Now this method exists
+        try {
+          final data = jsonDecode(response.body);
+          if (data['results'] != null && (data['results'] as List).isNotEmpty) {
+            return _parseSpoonacularRecipe(data['results'][0]);
+          }
+        } catch (e) {
+          logger.severe('JSON parsing error for Spoonacular response: $e');
+          return null;
         }
+      } else {
+        logger.severe('Spoonacular search failed with status code: ${response.statusCode}, body: ${response.body}');
       }
-      
+      return null;
+    } on SocketException {
+      logger.severe('Network error: No internet connection for Spoonacular.');
+      return null;
+    } on TimeoutException {
+      logger.severe('Timeout error: Spoonacular request timed out.');
       return null;
     } catch (e) {
-      print('❌ Spoonacular search error: $e');
+      logger.severe('Unexpected error in Spoonacular search: $e');
       return null;
     }
   }
 
-  // FIXED: Complete implementation of _parseSpoonacularRecipe
+  // TheMealDB fallback
+  static Future<RecipeData?> _tryMealDbRecipe(String dishName) async {
+    try {
+      final uri = Uri.https('www.themealdb.com', '/api/json/v1/1/search.php', {'s': dishName});
+      final response = await http.get(uri).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        try {
+          final data = jsonDecode(response.body);
+          if (data['meals'] != null && (data['meals'] as List).isNotEmpty) {
+            return _parseMealDbRecipe(data['meals'][0]);
+          }
+        } catch (e) {
+          logger.severe('JSON parsing error for TheMealDB response: $e');
+          return null;
+        }
+      } else {
+        logger.severe('TheMealDB search failed with status code: ${response.statusCode}, body: ${response.body}');
+      }
+      return null;
+    } on SocketException {
+      logger.severe('Network error: No internet connection for TheMealDB.');
+      return null;
+    } on TimeoutException {
+      logger.severe('Timeout error: TheMealDB request timed out.');
+      return null;
+    } catch (e) {
+      logger.severe('Unexpected error in TheMealDB search: $e');
+      return null;
+    }
+  }
+
+  // Fallback recipe generation
+  static Future<RecipeData> _generateFallbackRecipe(
+    String dishName, 
+    String? cuisineType, 
+    List<String> restrictions, {
+    String? error,
+  }) async {
+    return RecipeData(
+      id: 'fallback_${DateTime.now().millisecondsSinceEpoch}',
+      name: dishName,
+      cuisine: cuisineType ?? 'International',
+      category: 'Main Course',
+      cookTime: '30 minutes',
+      difficulty: 'Medium',
+      servings: 2,
+      ingredients: ['Main ingredients for $dishName'],
+      instructions: error != null
+          ? ['Could not fetch recipe due to a $error. Please try again later.']
+          : ['Prepare and cook $dishName according to your preference.'],
+      tips: ['Use fresh ingredients for best results'],
+      nutritionInfo: {},
+      source: 'ai_fallback',
+    );
+  }
+
+  // ... (parsing and helper methods remain the same)
   static RecipeData _parseSpoonacularRecipe(Map<String, dynamic> recipe) {
     final ingredients = <String>[];
     if (recipe['extendedIngredients'] != null) {
@@ -106,27 +199,6 @@ class RecipeService {
     );
   }
 
-  // MealDB fallback
-  static Future<RecipeData?> _tryMealDbRecipe(String dishName) async {
-    try {
-      final response = await http.get(
-        Uri.parse('${ApiConfig.mealDbBaseUrl}/search.php?s=${Uri.encodeComponent(dishName)}')
-      );
-      
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['meals'] != null && data['meals'].isNotEmpty) {
-          return _parseMealDbRecipe(data['meals'][0]); // FIXED: Now this method exists
-        }
-      }
-      return null;
-    } catch (e) {
-      print('❌ MealDB recipe error: $e');
-      return null;
-    }
-  }
-
-  // FIXED: Complete implementation of _parseMealDbRecipe
   static RecipeData _parseMealDbRecipe(Map<String, dynamic> meal) {
     final ingredients = <String>[];
     for (int i = 1; i <= 20; i++) {
@@ -155,29 +227,6 @@ class RecipeService {
     );
   }
 
-  // Fallback recipe generation
-  static Future<RecipeData> _generateFallbackRecipe(
-    String dishName, 
-    String? cuisineType, 
-    List<String> restrictions
-  ) async {
-    return RecipeData(
-      id: 'fallback_${DateTime.now().millisecondsSinceEpoch}',
-      name: dishName,
-      cuisine: cuisineType ?? 'International',
-      category: 'Main Course',
-      cookTime: '30 minutes',
-      difficulty: 'Medium',
-      servings: 2,
-      ingredients: ['Main ingredients for $dishName'],
-      instructions: ['Prepare and cook $dishName according to your preference'],
-      tips: ['Use fresh ingredients for best results'],
-      nutritionInfo: {},
-      source: 'ai_fallback',
-    );
-  }
-
-  // Helper methods
   static String _estimateDifficulty(int cookTime) {
     if (cookTime <= 15) return 'Easy';
     if (cookTime <= 45) return 'Medium';

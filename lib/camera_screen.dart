@@ -2,12 +2,8 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
-import '../models/food_item.dart' as models;
-import 'emergency_alert_screen.dart';
-import '../services/user_profile_service.dart';
-import '../services/nutritionix_service.dart';
+import 'viewmodels/camera_viewmodel.dart';
 
 class CameraScreen extends StatefulWidget {
   final CameraDescription camera;
@@ -19,83 +15,70 @@ class CameraScreen extends StatefulWidget {
 }
 
 class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver {
-  late CameraController _controller;
-  late Future<void> _initializeControllerFuture;
-  bool _isProcessing = false;
-  bool _isImageCaptured = false;
-  XFile? _capturedImage;
-  String? _detectedDish;
-  String? _detectedText;
-  List<String> _detectedAllergens = [];
-  bool _isTranslateMode = false;
-
-  final NutritionixService _nutritionixService = NutritionixService();
+  late CameraViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
+    _viewModel = CameraViewModel(context, widget.camera);
     WidgetsBinding.instance.addObserver(this);
-    _controller = CameraController(widget.camera, ResolutionPreset.high);
-    _initializeControllerFuture = _controller.initialize();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _controller.dispose();
+    _viewModel.dispose();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (!_controller.value.isInitialized) {
-      return;
-    }
-    if (state == AppLifecycleState.inactive) {
-      _controller.dispose();
-    } else if (state == AppLifecycleState.resumed) {
-      _controller = CameraController(widget.camera, ResolutionPreset.high);
-      _initializeControllerFuture = _controller.initialize();
-    }
+    _viewModel.didChangeAppLifecycleState(state);
   }
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          FutureBuilder<void>(
-            future: _initializeControllerFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.done) {
-                if (_isImageCaptured && _capturedImage != null) {
-                  return SizedBox.expand(
-                    child: Image.file(
-                      File(_capturedImage!.path),
-                      fit: BoxFit.cover,
-                    ),
-                  );
-                }
-                return CameraPreview(_controller);
-              } else {
-                return const Center(child: CircularProgressIndicator());
-              }
-            },
-          ),
-          _buildHeaderOverlay(colorScheme),
-          _buildRealTimeOverlays(),
-          _buildBottomActionBar(colorScheme),
-          if (_isImageCaptured && _capturedImage != null)
-            _buildPostScanSheet(context, colorScheme),
-        ],
+    return ChangeNotifierProvider.value(
+      value: _viewModel,
+      child: Consumer<CameraViewModel>(
+        builder: (context, viewModel, child) {
+          return Scaffold(
+            backgroundColor: Colors.black,
+            body: Stack(
+              children: [
+                FutureBuilder<void>(
+                  future: viewModel.initializeControllerFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.done) {
+                      if (viewModel.isImageCaptured && viewModel.capturedImage != null) {
+                        return SizedBox.expand(
+                          child: Image.file(
+                            File(viewModel.capturedImage!.path),
+                            fit: BoxFit.cover,
+                          ),
+                        );
+                      }
+                      return CameraPreview(viewModel.cameraController);
+                    } else {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                  },
+                ),
+                _buildHeaderOverlay(context, viewModel),
+                _buildRealTimeOverlays(context, viewModel),
+                _buildBottomActionBar(context, viewModel),
+                if (viewModel.isImageCaptured && viewModel.capturedImage != null)
+                  _buildPostScanSheet(context, viewModel),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildHeaderOverlay(ColorScheme colorScheme) {
+  Widget _buildHeaderOverlay(BuildContext context, CameraViewModel viewModel) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Positioned(
       top: 0,
       left: 0,
@@ -116,22 +99,18 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
           child: Row(
             children: [
               IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                icon: Icon(Icons.arrow_back, color: colorScheme.onPrimary),
                 onPressed: () => Navigator.pop(context),
               ),
               const Spacer(),
-              const Text(
+              Text(
                 'foodpassport',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(color: colorScheme.onPrimary),
               ),
               const Spacer(),
               IconButton(
-                icon: const Icon(Icons.flash_on, color: Colors.white),
-                onPressed: _toggleFlash,
+                icon: Icon(Icons.flash_on, color: colorScheme.onPrimary),
+                onPressed: viewModel.toggleFlash,
               ),
             ],
           ),
@@ -140,60 +119,63 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     );
   }
 
-  Widget _buildRealTimeOverlays() {
+  Widget _buildRealTimeOverlays(BuildContext context, CameraViewModel viewModel) {
     return Positioned.fill(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (_detectedDish != null && !_isTranslateMode)
-            _buildDishRecognitionOverlay(),
-          if (_detectedText != null && _isTranslateMode)
-            _buildTextTranslationOverlay(),
-          if (_detectedAllergens.isNotEmpty) _buildAllergyAlertOverlay(),
-        ],
-      ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (viewModel.detectedDish != null && !viewModel.isTranslateMode)
+                _buildDishRecognitionOverlay(context, viewModel),
+              if (viewModel.detectedText != null && viewModel.isTranslateMode)
+                _buildTextTranslationOverlay(context, viewModel),
+              if (viewModel.detectedAllergens.isNotEmpty)
+                _buildAllergyAlertOverlay(context, viewModel),
+            ],
+          ),
+        ),
     );
   }
 
-  Widget _buildDishRecognitionOverlay() {
+  Widget _buildDishRecognitionOverlay(BuildContext context, CameraViewModel viewModel) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.9),
+        color: colorScheme.surface.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary,
+          color: colorScheme.primary,
           width: 2,
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.restaurant, color: Theme.of(context).colorScheme.primary, size: 16),
+          Icon(Icons.restaurant, color: colorScheme.primary, size: 16),
           const SizedBox(width: 8),
           Text(
-            _detectedDish!,
-            style: const TextStyle(
-              color: Color(0xFF333333),
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
+            viewModel.detectedDish!,
+            style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTextTranslationOverlay() {
+  Widget _buildTextTranslationOverlay(BuildContext context, CameraViewModel viewModel) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.9),
+        color: colorScheme.surface.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).colorScheme.secondary,
+          color: colorScheme.secondary,
           width: 2,
         ),
       ),
@@ -204,59 +186,50 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.secondary,
+              color: colorScheme.secondary,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: const Text(
+            child: Text(
               'Translated',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
+              style: textTheme.labelSmall?.copyWith(color: colorScheme.onSecondary, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            _detectedText!,
-            style: const TextStyle(
-              color: Color(0xFF333333),
-              fontSize: 14,
-            ),
+            viewModel.detectedText!,
+            style: textTheme.bodyMedium,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAllergyAlertOverlay() {
+  Widget _buildAllergyAlertOverlay(BuildContext context, CameraViewModel viewModel) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.red.withValues(alpha: 0.9),
+        color: colorScheme.error.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.warning, color: Colors.white, size: 16),
+          Icon(Icons.warning, color: colorScheme.onError, size: 16),
           const SizedBox(width: 8),
           Text(
-            'Contains: ${_detectedAllergens.join(', ')}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
+            'Contains: ${viewModel.detectedAllergens.join(', ')}',
+            style: textTheme.bodySmall?.copyWith(color: colorScheme.onError, fontWeight: FontWeight.bold),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBottomActionBar(ColorScheme colorScheme) {
-    if (_isImageCaptured) return const SizedBox.shrink();
+  Widget _buildBottomActionBar(BuildContext context, CameraViewModel viewModel) {
+    if (viewModel.isImageCaptured) return const SizedBox.shrink();
 
     return Positioned(
       bottom: 0,
@@ -287,17 +260,19 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _buildModeButton(
+                    context: context,
                     icon: Icons.restaurant,
                     label: 'Dish ID',
-                    isActive: !_isTranslateMode,
-                    onTap: () => setState(() => _isTranslateMode = false),
+                    isActive: !viewModel.isTranslateMode,
+                    onTap: viewModel.toggleTranslateMode,
                   ),
                   const SizedBox(width: 16),
                   _buildModeButton(
+                    context: context,
                     icon: Icons.translate,
                     label: 'Translate',
-                    isActive: _isTranslateMode,
-                    onTap: () => setState(() => _isTranslateMode = true),
+                    isActive: viewModel.isTranslateMode,
+                    onTap: viewModel.toggleTranslateMode,
                   ),
                 ],
               ),
@@ -311,7 +286,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
               ),
               child: IconButton(
                 icon: const Icon(Icons.camera_alt, size: 32, color: Colors.white),
-                onPressed: _isProcessing ? null : _takePhoto,
+                onPressed: viewModel.isProcessing ? null : viewModel.takePhoto,
               ),
             ),
           ],
@@ -321,29 +296,30 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   }
 
   Widget _buildModeButton({
+    required BuildContext context,
     required IconData icon,
     required String label,
     required bool isActive,
     required VoidCallback onTap,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isActive ? Theme.of(context).colorScheme.primary : Colors.transparent,
+          color: isActive ? colorScheme.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 16, color: isActive ? Colors.white : Colors.white70),
+            Icon(icon, size: 16, color: isActive ? colorScheme.onPrimary : colorScheme.onPrimary.withValues(alpha: 0.7)),
             const SizedBox(width: 4),
             Text(
               label,
-              style: TextStyle(
-                color: isActive ? Colors.white : Colors.white70,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+              style: textTheme.labelMedium?.copyWith(
+                color: isActive ? colorScheme.onPrimary : colorScheme.onPrimary.withValues(alpha: 0.7),
               ),
             ),
           ],
@@ -352,7 +328,8 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     );
   }
 
-  Widget _buildPostScanSheet(BuildContext context, ColorScheme colorScheme) {
+  Widget _buildPostScanSheet(BuildContext context, CameraViewModel viewModel) {
+    final colorScheme = Theme.of(context).colorScheme;
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
       minChildSize: 0.4,
@@ -360,7 +337,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       builder: (context, scrollController) {
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: colorScheme.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             boxShadow: [
               BoxShadow(
@@ -386,33 +363,23 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
                   ),
                 ),
                 const SizedBox(height: 16),
-                if (_detectedDish != null) _buildAchievementNotification(),
+                if (viewModel.detectedDish != null) _buildAchievementNotification(context),
                 const SizedBox(height: 16),
-                if (_detectedDish != null) _buildDishInfoSection(),
-                if (_detectedText != null) _buildTranslationSection(),
+                if (viewModel.detectedDish != null) _buildDishInfoSection(context, viewModel),
+                if (viewModel.detectedText != null) _buildTranslationSection(context, viewModel),
                 const SizedBox(height: 24),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => setState(() {
-                          _isImageCaptured = false;
-                          _capturedImage = null;
-                          _detectedDish = null;
-                          _detectedText = null;
-                          _detectedAllergens.clear();
-                        }),
+                        onPressed: viewModel.retakePhoto,
                         child: const Text('Retake'),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: _saveToJournal,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: colorScheme.primary,
-                          foregroundColor: Colors.white,
-                        ),
+                        onPressed: viewModel.saveToJournal,
                         child: const Text('Save to Journal'),
                       ),
                     ),
@@ -426,29 +393,28 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     );
   }
 
-  Widget _buildAchievementNotification() {
+  Widget _buildAchievementNotification(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+        color: colorScheme.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary,
+          color: colorScheme.primary,
           width: 1,
         ),
       ),
       child: Row(
         children: [
-          Icon(Icons.celebration, color: Theme.of(context).colorScheme.primary),
+          Icon(Icons.celebration, color: colorScheme.primary),
           const SizedBox(width: 8),
-          const Expanded(
+          Expanded(
             child: Text(
               'Dish Identified! +10 XP',
-              style: TextStyle(
-                color: Color(0xFF333333),
-                fontWeight: FontWeight.bold,
-              ),
+              style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -456,36 +422,33 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     );
   }
 
-  Widget _buildDishInfoSection() {
+  Widget _buildDishInfoSection(BuildContext context, CameraViewModel viewModel) {
+    final textTheme = Theme.of(context).textTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          _detectedDish!,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF333333),
-          ),
+          viewModel.detectedDish!,
+          style: textTheme.headlineSmall,
         ),
         const SizedBox(height: 8),
-        if (_detectedAllergens.isNotEmpty)
+        if (viewModel.detectedAllergens.isNotEmpty)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Detected Ingredients:', style: TextStyle(fontWeight: FontWeight.w600)),
+              Text('Detected Ingredients:', style: textTheme.titleMedium),
               const SizedBox(height: 4),
               Wrap(
                 spacing: 8,
                 runSpacing: 4,
-                children: _detectedAllergens
-                    .map((allergen) => Chip(label: Text(allergen), backgroundColor: Colors.grey[100]))
+                children: viewModel.detectedAllergens
+                    .map((allergen) => Chip(label: Text(allergen)))
                     .toList(),
               ),
             ],
           ),
         const SizedBox(height: 16),
-        const Text('Nutrition Information:', style: TextStyle(fontWeight: FontWeight.w600)),
+        Text('Nutrition Information:', style: textTheme.titleMedium),
         const SizedBox(height: 8),
         const Row(
           children: [
@@ -500,135 +463,24 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     );
   }
 
-  Widget _buildTranslationSection() {
+  Widget _buildTranslationSection(BuildContext context, CameraViewModel viewModel) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Translated Text:', style: TextStyle(fontWeight: FontWeight.w600)),
+        Text('Translated Text:', style: textTheme.titleMedium),
         const SizedBox(height: 8),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
+            color: colorScheme.secondary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Text(_detectedText!),
+          child: Text(viewModel.detectedText!, style: textTheme.bodyMedium),
         ),
       ],
-    );
-  }
-
-  Future<void> _takePhoto() async {
-    if (!_controller.value.isInitialized) return;
-    setState(() {
-      _isProcessing = true;
-    });
-    try {
-      final image = await _controller.takePicture();
-      _capturedImage = image;
-      _isImageCaptured = true;
-
-      final recognizedText = await recognizeTextFromImage(image.path);
-      final queryText = recognizedText.isNotEmpty ? recognizedText : "unknown food";
-
-      final apiResult = await _nutritionixService.searchFood(queryText);
-
-      final foods = apiResult['foods'] as List<dynamic>?;
-      final detectedDish = (foods != null && foods.isNotEmpty) ? (foods[0]['food_name'] as String) : queryText;
-
-      final detectedAllergens = <String>[];
-      if (foods != null && foods.isNotEmpty) {
-        final food = foods[0];
-        final String ingredients = (food['nf_ingredient_statement'] ?? '').toLowerCase();
-
-        if (ingredients.contains('egg')) detectedAllergens.add('eggs');
-        if (ingredients.contains('milk') || ingredients.contains('dairy')) detectedAllergens.add('dairy');
-        if (ingredients.contains('gluten')) detectedAllergens.add('gluten');
-      }
-
-      setState(() {
-        if (_isTranslateMode) {
-          _detectedText = detectedDish;
-          _detectedDish = null;
-        } else {
-          _detectedDish = detectedDish;
-          _detectedText = null;
-        }
-        _detectedAllergens = detectedAllergens;
-        _checkUserAllergies();
-        _isProcessing = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isProcessing = false;
-      });
-      _showErrorDialog('Failed to analyze image: $e');
-    }
-  }
-
-  Future<String> recognizeTextFromImage(String imagePath) async {
-    final inputImage = InputImage.fromFilePath(imagePath);
-    final textRecognizer = TextRecognizer();
-
-    final recognizedText = await textRecognizer.processImage(inputImage);
-    await textRecognizer.close();
-
-    return recognizedText.text;
-  }
-
-  void _toggleFlash() {
-    if (!_controller.value.isInitialized) return;
-    _controller.setFlashMode(_controller.value.flashMode == FlashMode.torch ? FlashMode.off : FlashMode.torch);
-    setState(() {});
-  }
-
-  void _checkUserAllergies() {
-    final userProfileService = Provider.of<UserProfileService>(context, listen: false);
-    final userProfile = userProfileService.userProfile;
-    if (userProfile != null) {
-      final userAllergies = userProfile.allergies;
-      final matchingAllergens = _detectedAllergens.where((a) => userAllergies.contains(a)).toList();
-      if (matchingAllergens.isNotEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _navigateToEmergencyScreen();
-        });
-      }
-    }
-  }
-
-  void _navigateToEmergencyScreen() {
-    final foodItem = models.FoodItem(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: _detectedDish ?? _detectedText ?? 'Unknown Dish',
-      confidenceScore: 0.8,
-      calories: 0.0,
-      protein: 0.0,
-      carbs: 0.0,
-      fat: 0.0,
-      source: 'camera',
-      detectedAllergens: _detectedAllergens,
-      imagePath: _capturedImage?.path ?? '',
-      timestamp: DateTime.now(),
-    );
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => EmergencyAlertScreen(foodItem: foodItem)),
-    );
-  }
-
-  void _saveToJournal() {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved to Food Journal')));
-  }
-
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) =>
-          AlertDialog(title: const Text('Analysis Failed'), content: Text(message), actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
-      ]),
     );
   }
 }
@@ -641,10 +493,11 @@ class NutritionInfoItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Column(
       children: [
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        Text(value, style: textTheme.titleLarge),
+        Text(label, style: textTheme.bodySmall?.copyWith(color: Colors.grey)),
       ],
     );
   }

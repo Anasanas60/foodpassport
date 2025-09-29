@@ -1,238 +1,80 @@
+import 'dart:convert';
+import 'package:flutter/services.dart' show rootBundle;
+import 'logger.dart';
+
 class AllergenChecker {
-  // Enhanced allergens mapping for different cuisines
-  static final Map<String, List<String>> _cuisineAllergens = {
-    'thai': ['peanuts', 'shellfish', 'fish', 'soy', 'gluten', 'sesame', 'eggs'],
-    'italian': ['gluten', 'dairy', 'eggs', 'nuts', 'shellfish'],
-    'mexican': ['dairy', 'gluten', 'avocado', 'corn', 'beans'],
-    'chinese': ['soy', 'shellfish', 'gluten', 'sesame', 'peanuts', 'eggs'],
-    'indian': ['dairy', 'nuts', 'gluten', 'mustard', 'sesame', 'legumes'],
-    'japanese': ['fish', 'shellfish', 'soy', 'wheat', 'eggs', 'buckwheat'],
-    'mediterranean': ['nuts', 'sesame', 'gluten', 'dairy', 'shellfish'],
-    'french': ['dairy', 'gluten', 'eggs', 'nuts'],
-    'korean': ['soy', 'sesame', 'shellfish', 'gluten', 'peanuts'],
-    'vietnamese': ['fish', 'shellfish', 'soy', 'peanuts', 'gluten'],
-  };
+  // Static maps to hold the loaded allergen data.
+  static Map<String, List<String>> _ingredientAllergens = {};
+  static Map<String, int> _severityRanking = {};
 
-  // Enhanced ingredient allergen mapping
-  static final Map<String, List<String>> _ingredientAllergens = {
-    // Nuts & Seeds
-    'peanut': ['peanuts'],
-    'almond': ['nuts'],
-    'walnut': ['nuts'],
-    'cashew': ['nuts'],
-    'pistachio': ['nuts'],
-    'hazelnut': ['nuts'],
-    'pecan': ['nuts'],
-    'macadamia': ['nuts'],
-    'sesame': ['sesame'],
-    'sunflower seed': ['seeds'],
-    'pumpkin seed': ['seeds'],
-    
-    // Dairy
-    'milk': ['dairy'],
-    'cheese': ['dairy'],
-    'butter': ['dairy'],
-    'cream': ['dairy'],
-    'yogurt': ['dairy'],
-    'whey': ['dairy'],
-    'casein': ['dairy'],
-    
-    // Gluten
-    'wheat': ['gluten'],
-    'flour': ['gluten'],
-    'bread': ['gluten'],
-    'pasta': ['gluten'],
-    'barley': ['gluten'],
-    'rye': ['gluten'],
-    'oats': ['gluten'], // Often cross-contaminated
-    
-    // Seafood
-    'fish': ['fish'],
-    'salmon': ['fish'],
-    'tuna': ['fish'],
-    'cod': ['fish'],
-    'shrimp': ['shellfish'],
-    'prawn': ['shellfish'],
-    'crab': ['shellfish'],
-    'lobster': ['shellfish'],
-    'scallop': ['shellfish'],
-    'clam': ['shellfish'],
-    'mussel': ['shellfish'],
-    'oyster': ['shellfish'],
-    
-    // Other common allergens
-    'egg': ['eggs'],
-    'soy': ['soy'],
-    'soybean': ['soy'],
-    'tofu': ['soy'],
-    'mustard': ['mustard'],
-    'celery': ['celery'],
-    'lupin': ['lupin'],
-    'mollusk': ['shellfish'],
-    'crustacean': ['shellfish'],
-  };
-
-  // Advanced allergen detection with multiple strategies
-  static List<String> detectAllergens({
-    required String foodName,
-    String? description,
-    String? cuisineType,
-    List<String>? ingredients,
-    Map<String, dynamic>? nutritionInfo,
-  }) {
-    final Set<String> allergens = <String>{};
-    final lowerFoodName = foodName.toLowerCase();
-    final lowerDescription = description?.toLowerCase() ?? '';
-    final lowerCuisine = cuisineType?.toLowerCase();
-    final allIngredients = ingredients?.join(' ').toLowerCase() ?? '';
-
-    // Strategy 1: Cuisine-based allergen patterns
-    _detectCuisineAllergens(lowerCuisine, allergens);
-
-    // Strategy 2: Ingredient-based detection
-    _detectIngredientAllergens('$lowerFoodName $lowerDescription $allIngredients', allergens);
-
-    // Strategy 3: Pattern matching for complex dishes
-    _detectPatternBasedAllergens(lowerFoodName, lowerDescription, allergens);
-
-    // Strategy 4: Nutrition-based inference (if available)
-    if (nutritionInfo != null) {
-      _detectNutritionBasedAllergens(nutritionInfo, allergens);
-    }
-
-    return allergens.toList();
-  }
-
-  // Cuisine-based allergen detection
-  static void _detectCuisineAllergens(String? cuisine, Set<String> allergens) {
-    if (cuisine != null && _cuisineAllergens.containsKey(cuisine)) {
-      allergens.addAll(_cuisineAllergens[cuisine]!);
+  // Loads allergen data from the JSON asset.
+  // This should be called once at app startup.
+  static Future<void> loadAllergenData() async {
+    try {
+      final String response = await rootBundle.loadString('assets/allergen_data.json');
+      final data = json.decode(response) as Map<String, dynamic>;
+      
+      _ingredientAllergens = (data['ingredient_allergens'] as Map<String, dynamic>).map(
+        (key, value) => MapEntry(key, List<String>.from(value as List)),
+      );
+      
+      _severityRanking = (data['severity_ranking'] as Map<String, dynamic>).map(
+        (key, value) => MapEntry(key, value as int),
+      );
+      logger.info('Allergen data loaded successfully.');
+    } catch (e) {
+      logger.severe('Failed to load allergen data: $e');
+      // Handle error, maybe by using a hardcoded fallback
     }
   }
 
-  // Ingredient-based allergen detection
-  static void _detectIngredientAllergens(String text, Set<String> allergens) {
-    _ingredientAllergens.forEach((ingredient, allergenList) {
-      if (_containsWord(text, ingredient)) {
-        allergens.addAll(allergenList);
+  // Detects allergens based on a list of ingredients from an API.
+  // This is much more reliable than heuristic-based methods.
+  static List<String> detectAllergens({required List<String> ingredients}) {
+    if (_ingredientAllergens.isEmpty) {
+      logger.warning('Allergen data not loaded. Detection will be inaccurate.');
+      return [];
+    }
+
+    final Set<String> detected = <String>{};
+    final String combinedIngredients = ingredients.join(' ').toLowerCase();
+
+    _ingredientAllergens.forEach((keyword, allergenGroups) {
+      if (_containsWord(combinedIngredients, keyword)) {
+        detected.addAll(allergenGroups);
       }
     });
 
-    // Special cases and patterns
-    if (_containsWord(text, 'nut') && !text.contains('coconut')) {
-      allergens.add('nuts');
-    }
-    if (_containsWord(text, 'seafood') || _containsWord(text, 'marine')) {
-      allergens.addAll(['fish', 'shellfish']);
-    }
-    if (_containsWord(text, 'gluten') || _containsWord(text, 'wheat') || _containsWord(text, 'flour')) {
-      allergens.add('gluten');
-    }
-    if (_containsWord(text, 'dairy') || _containsWord(text, 'milk') || _containsWord(text, 'cheese')) {
-      allergens.add('dairy');
-    }
+    return detected.toList();
   }
 
-  // Pattern-based detection for complex dishes
-  static void _detectPatternBasedAllergens(String foodName, String description, Set<String> allergens) {
-    final combinedText = '$foodName $description'.toLowerCase();
-
-    // Common dish patterns
-    if (combinedText.contains('pad thai') || combinedText.contains('thai noodle')) {
-      allergens.addAll(['peanuts', 'shellfish', 'eggs', 'gluten']);
-    }
-    if (combinedText.contains('curry') || combinedText.contains('masala')) {
-      allergens.addAll(['dairy', 'nuts', 'gluten']);
-    }
-    if (combinedText.contains('sushi') || combinedText.contains('sashimi')) {
-      allergens.addAll(['fish', 'shellfish', 'soy']);
-    }
-    if (combinedText.contains('pasta') || combinedText.contains('spaghetti')) {
-      allergens.addAll(['gluten', 'dairy', 'eggs']);
-    }
-    if (combinedText.contains('cake') || combinedText.contains('pastry')) {
-      allergens.addAll(['gluten', 'dairy', 'eggs', 'nuts']);
-    }
-    if (combinedText.contains('stir fry') || combinedText.contains('wok')) {
-      allergens.addAll(['soy', 'shellfish', 'gluten', 'sesame']);
-    }
-  }
-
-  // Nutrition-based allergen inference
-  static void _detectNutritionBasedAllergens(Map<String, dynamic> nutrition, Set<String> allergens) {
-    // High protein might indicate dairy, eggs, or seafood
-    final protein = nutrition['protein'] ?? 0.0;
-    if (protein > 20) {
-      allergens.addAll(['dairy', 'eggs', 'fish', 'shellfish']);
-    }
-
-    // High calcium often indicates dairy
-    final calcium = nutrition['calcium'] ?? 0.0;
-    if (calcium > 100) {
-      allergens.add('dairy');
-    }
-
-    // Specific nutrient patterns
-    if (nutrition.containsKey('lactose') && nutrition['lactose'] > 0) {
-      allergens.add('dairy');
-    }
-    if (nutrition.containsKey('gluten') && nutrition['gluten'] > 0) {
-      allergens.add('gluten');
-    }
-  }
-
-  // Check if text contains a whole word (not just substring)
-  static bool _containsWord(String text, String word) {
-    final pattern = RegExp('\\b$word\\b', caseSensitive: false);
-    return pattern.hasMatch(text);
-  }
-
-  // Enhanced allergy matching with confidence scoring
-  static bool hasMatchingAllergens({
-    required List<String> detectedAllergens,
-    required List<String> userAllergies,
-    double confidenceThreshold = 0.7,
-  }) {
-    if (userAllergies.isEmpty) return false;
-
-    final matches = detectedAllergens.where((allergen) => userAllergies.contains(allergen));
-    return matches.isNotEmpty;
-  }
-
-  // Get emergency-level allergens with severity ranking
+  // Get emergency-level allergens that match the user's profile.
   static List<String> getEmergencyAllergens({
     required List<String> detectedAllergens,
     required List<String> userAllergies,
   }) {
-    // Rank allergens by potential severity
-    const severityRanking = {
-      'peanuts': 10,
-      'shellfish': 9,
-      'fish': 8,
-      'nuts': 7,
-      'eggs': 6,
-      'dairy': 5,
-      'soy': 4,
-      'gluten': 3,
-      'sesame': 2,
-      'mustard': 1,
-    };
-
     final emergencyAllergens = detectedAllergens
         .where((allergen) => userAllergies.contains(allergen))
         .toList();
 
-    // Sort by severity (highest first)
+    // Sort by severity (highest first) using loaded data
     emergencyAllergens.sort((a, b) {
-      final severityA = severityRanking[a] ?? 0;
-      final severityB = severityRanking[b] ?? 0;
+      final severityA = _severityRanking[a] ?? 0;
+      final severityB = _severityRanking[b] ?? 0;
       return severityB.compareTo(severityA);
     });
 
     return emergencyAllergens;
   }
 
-  // Get allergen risk level for UI display
+  // Helper function to check for whole word matches.
+  static bool _containsWord(String text, String word) {
+    final pattern = RegExp('\b$word\b', caseSensitive: false);
+    return pattern.hasMatch(text);
+  }
+
+  // ... (The other helper methods like getAllergenRiskLevel, generateAllergenWarnings, etc. can remain as they are, as they operate on the detected allergens list)
+
   static String getAllergenRiskLevel(List<String> emergencyAllergens) {
     if (emergencyAllergens.isEmpty) return 'none';
     
@@ -244,7 +86,6 @@ class AllergenChecker {
     return 'low';
   }
 
-  // Generate allergen warnings for display
   static List<String> generateAllergenWarnings(List<String> emergencyAllergens) {
     if (emergencyAllergens.isEmpty) return [];
 
@@ -260,7 +101,6 @@ class AllergenChecker {
       warnings.add('⚠️ Contains tree nuts - High allergy risk!');
     }
 
-    // Add general warnings for other allergens
     final otherAllergens = emergencyAllergens.where((allergen) =>
         !['peanuts', 'shellfish', 'nuts'].contains(allergen));
     
@@ -269,27 +109,5 @@ class AllergenChecker {
     }
 
     return warnings;
-  }
-
-  // Check for cross-contamination risks
-  static List<String> checkCrossContaminationRisks(String cuisineType, List<String> detectedAllergens) {
-    final risks = <String>[];
-    final lowerCuisine = cuisineType.toLowerCase();
-
-    // Cuisine-specific cross-contamination risks
-    if (lowerCuisine.contains('thai') && detectedAllergens.contains('peanuts')) {
-      risks.add('High risk of peanut cross-contamination in Thai cuisine');
-    }
-    if (lowerCuisine.contains('chinese') && detectedAllergens.contains('soy')) {
-      risks.add('Soy sauce used extensively in Chinese cooking');
-    }
-    if (lowerCuisine.contains('japanese') && detectedAllergens.contains('fish')) {
-      risks.add('Fish products commonly used in Japanese cuisine');
-    }
-    if (detectedAllergens.contains('gluten')) {
-      risks.add('Possible gluten cross-contamination in shared cooking areas');
-    }
-
-    return risks;
   }
 }

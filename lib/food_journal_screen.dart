@@ -16,8 +16,6 @@ class FoodJournalScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Food Journal'),
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
         elevation: 0,
         centerTitle: true,
         actions: [
@@ -37,8 +35,6 @@ class FoodJournalScreen extends StatelessWidget {
           : _buildJournalList(context, journalEntries, theme, colorScheme),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.pushNamed(context, '/camera'),
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
         child: const Icon(Icons.camera_alt),
         tooltip: 'Scan New Food',
       ),
@@ -56,7 +52,7 @@ class FoodJournalScreen extends StatelessWidget {
               width: 150,
               height: 150,
               decoration: BoxDecoration(
-                color: colorScheme.primary.withAlpha(20),
+                color: colorScheme.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -68,18 +64,13 @@ class FoodJournalScreen extends StatelessWidget {
             const SizedBox(height: 32),
             Text(
               'Your Food Journal is Empty',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF333333),
-              ),
+              style: theme.textTheme.headlineSmall,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
             Text(
               'Start scanning food to build your culinary journey and earn XP!',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: Colors.grey[600],
-              ),
+              style: theme.textTheme.bodyLarge,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
@@ -87,12 +78,6 @@ class FoodJournalScreen extends StatelessWidget {
               onPressed: () => Navigator.pushNamed(context, '/camera'),
               icon: const Icon(Icons.camera_alt),
               label: const Text('Scan Your First Dish'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colorScheme.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              ),
             ),
           ],
         ),
@@ -104,7 +89,7 @@ class FoodJournalScreen extends StatelessWidget {
     return Column(
       children: [
         // Stats Overview
-        _buildStatsOverview(entries, colorScheme),
+        _buildStatsOverview(context, entries, colorScheme),
         
         // Journal Entries
         Expanded(
@@ -121,7 +106,7 @@ class FoodJournalScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatsOverview(List<FoodItem> entries, ColorScheme colorScheme) {
+  Widget _buildStatsOverview(BuildContext context, List<FoodItem> entries, ColorScheme colorScheme) {
     final totalDishes = entries.length;
     final totalCalories = entries.fold(0, (sum, item) => sum + item.calories.round());
     final uniqueCuisines = entries.map((e) => e.source).toSet().length;
@@ -131,14 +116,14 @@ class FoodJournalScreen extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [colorScheme.primary, const Color(0xFFFF8A80)],
+          colors: [colorScheme.primary, colorScheme.primary.withValues(alpha: 0.8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.primary.withAlpha(100),
+            color: colorScheme.primary.withValues(alpha: 0.3),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -147,41 +132,42 @@ class FoodJournalScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildStatItem(
+          _buildStatItem(context,
             value: totalDishes.toString(),
             label: 'Dishes',
             icon: Icons.restaurant,
-            color: Colors.white,
+            color: colorScheme.onPrimary,
           ),
-          _buildStatItem(
+          _buildStatItem(context,
             value: '${totalCalories}k',
             label: 'Calories',
             icon: Icons.local_fire_department,
-            color: Colors.white,
+            color: colorScheme.onPrimary,
           ),
-          _buildStatItem(
+          _buildStatItem(context,
             value: uniqueCuisines.toString(),
             label: 'Cuisines',
             icon: Icons.flag,
-            color: Colors.white,
+            color: colorScheme.onPrimary,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatItem({
+  Widget _buildStatItem(BuildContext context, {
     required String value,
     required String label,
     required IconData icon,
     required Color color,
   }) {
+    final textTheme = Theme.of(context).textTheme;
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withAlpha(50),
+            color: color.withValues(alpha: 0.2),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: color, size: 20),
@@ -189,238 +175,210 @@ class FoodJournalScreen extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: textTheme.titleLarge?.copyWith(color: color, fontWeight: FontWeight.bold),
         ),
         Text(
           label,
-          style: TextStyle(
-            color: Colors.white.withAlpha(200),
-            fontSize: 12,
-          ),
+          style: textTheme.bodySmall?.copyWith(color: color.withValues(alpha: 0.8)),
         ),
       ],
     );
   }
 
   Widget _buildJournalCard(BuildContext context, FoodItem item, ThemeData theme, ColorScheme colorScheme) {
+    final textTheme = theme.textTheme;
     final allergyWarning = item.detectedAllergens.isNotEmpty;
     final isRecent = DateTime.now().difference(item.timestamp).inDays < 1;
 
-    return Container(
+    return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: InkWell(
-          onTap: () {
-            Navigator.pushNamed(
-              context,
-              '/recipe',
-              arguments: {'dishName': item.name},
-            );
-          },
-          borderRadius: BorderRadius.circular(20),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Food Image
-                Stack(
-                  children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        color: colorScheme.primary.withAlpha(20),
-                        image: item.imagePath.isNotEmpty
-                            ? DecorationImage(
-                                image: AssetImage(item.imagePath),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
-                      ),
-                      child: item.imagePath.isEmpty
-                          ? Icon(
-                              Icons.restaurant,
-                              size: 40,
-                              color: colorScheme.primary,
+      child: InkWell(
+        onTap: () {
+          Navigator.pushNamed(
+            context,
+            '/recipe',
+            arguments: {'dishName': item.name},
+          );
+        },
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // Food Image
+              Stack(
+                children: [
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      color: colorScheme.primary.withValues(alpha: 0.1),
+                      image: item.imagePath.isNotEmpty
+                          ? DecorationImage(
+                              image: AssetImage(item.imagePath),
+                              fit: BoxFit.cover,
                             )
                           : null,
                     ),
+                    child: item.imagePath.isEmpty
+                        ? Icon(
+                            Icons.restaurant,
+                            size: 40,
+                            color: colorScheme.primary,
+                          )
+                        : null,
+                  ),
+                  if (isRecent)
+                    Positioned(
+                      top: -4,
+                      right: -4,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: colorScheme.secondary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.fiber_new,
+                          color: colorScheme.onSecondary,
+                          size: 12,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              
+              const SizedBox(width: 16),
+              
+              // Food Details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.name,
+                            style: textTheme.titleLarge,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (allergyWarning)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: colorScheme.errorContainer,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: colorScheme.error),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.warning, color: colorScheme.error, size: 12),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Allergy',
+                                  style: textTheme.labelSmall?.copyWith(color: colorScheme.error, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 8),
+                    
+                    // Nutrition Info
+                    Wrap(
+                      spacing: 12,
+                      children: [
+                        _buildNutritionChip(
+                          '${item.calories.round()} cal',
+                          Icons.local_fire_department,
+                          Colors.orange,
+                        ),
+                        _buildNutritionChip(
+                          '${item.protein.round()}g protein',
+                          Icons.fitness_center,
+                          Colors.blue,
+                        ),
+                        _buildNutritionChip(
+                          '${item.carbs.round()}g carbs',
+                          Icons.grass,
+                          Colors.green,
+                        ),
+                        _buildNutritionChip(
+                          '${item.fat.round()}g fat',
+                          Icons.water_drop,
+                          Colors.red,
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 8),
+                    
+                    // Date and Source
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.access_time,
+                          size: 14,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _formatDate(item.timestamp),
+                          style: textTheme.bodySmall,
+                        ),
+                        const SizedBox(width: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: colorScheme.secondary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            item.source,
+                            style: textTheme.labelSmall?.copyWith(color: colorScheme.secondary, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    // XP Reward
                     if (isRecent)
-                      Positioned(
-                        top: -4,
-                        right: -4,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.fiber_new,
-                            color: Colors.white,
-                            size: 12,
-                          ),
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.celebration, size: 12, color: colorScheme.primary),
+                            const SizedBox(width: 4),
+                            Text(
+                              '+15 XP',
+                              style: textTheme.labelSmall?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold),
+                            ),
+                          ],
                         ),
                       ),
                   ],
                 ),
-                
-                const SizedBox(width: 16),
-                
-                // Food Details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              item.name,
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF333333),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (allergyWarning)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.red[50],
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.red),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.warning, color: Colors.red[700], size: 12),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Allergy',
-                                    style: TextStyle(
-                                      color: Colors.red[700],
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                      
-                      const SizedBox(height: 8),
-                      
-                      // Nutrition Info
-                      Wrap(
-                        spacing: 12,
-                        children: [
-                          _buildNutritionChip(
-                            '${item.calories.round()} cal',
-                            Icons.local_fire_department,
-                            Colors.orange,
-                          ),
-                          _buildNutritionChip(
-                            '${item.protein.round()}g protein',
-                            Icons.fitness_center,
-                            Colors.blue,
-                          ),
-                          _buildNutritionChip(
-                            '${item.carbs.round()}g carbs',
-                            Icons.grain,
-                            Colors.green,
-                          ),
-                          _buildNutritionChip(
-                            '${item.fat.round()}g fat',
-                            Icons.water_drop,
-                            Colors.red,
-                          ),
-                        ],
-                      ),
-                      
-                      const SizedBox(height: 8),
-                      
-                      // Date and Source
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.access_time,
-                            size: 14,
-                            color: Colors.grey[500],
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _formatDate(item.timestamp),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: colorScheme.secondary.withAlpha(25),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              item.source,
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: colorScheme.secondary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      
-                      // XP Reward
-                      if (isRecent)
-                        Container(
-                          margin: const EdgeInsets.only(top: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: colorScheme.primary.withAlpha(25),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.celebration, size: 12, color: colorScheme.primary),
-                              const SizedBox(width: 4),
-                              Text(
-                                '+15 XP',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                
-                // Chevron
-                Icon(
-                  Icons.chevron_right,
-                  color: Colors.grey[400],
-                ),
-              ],
-            ),
+              ),
+              
+              // Chevron
+              Icon(
+                Icons.chevron_right,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ],
           ),
         ),
       ),
@@ -431,7 +389,7 @@ class FoodJournalScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withAlpha(20),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -466,6 +424,7 @@ class FoodJournalScreen extends StatelessWidget {
   }
 
   void _showAnalytics(BuildContext context, List<FoodItem> entries, ColorScheme colorScheme) {
+    final textTheme = Theme.of(context).textTheme;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -473,11 +432,11 @@ class FoodJournalScreen extends StatelessWidget {
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.7,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colorScheme.surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha(100),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 32,
               offset: const Offset(0, -8),
             ),
@@ -501,11 +460,7 @@ class FoodJournalScreen extends StatelessWidget {
               const SizedBox(height: 24),
               Text(
                 'Food Journal Analytics',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF333333),
-                ),
+                style: textTheme.headlineMedium,
               ),
               const SizedBox(height: 20),
               // Add analytics content here
@@ -514,23 +469,16 @@ class FoodJournalScreen extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.analytics, size: 80, color: colorScheme.primary.withAlpha(100)),
+                      Icon(Icons.analytics, size: 80, color: colorScheme.primary.withValues(alpha: 0.5)),
                       const SizedBox(height: 16),
                       Text(
                         'Analytics Coming Soon',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: textTheme.titleLarge,
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Track your eating habits and progress',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[500],
-                        ),
+                        style: textTheme.bodyMedium,
                         textAlign: TextAlign.center,
                       ),
                     ],

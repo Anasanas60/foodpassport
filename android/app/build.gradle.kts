@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.foodpassport"
-        minSdk = 21                  // Must be at least 21 for ML Kit OCR
+        minSdk = flutter.minSdkVersion                  // Must be at least 21 for ML Kit OCR
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

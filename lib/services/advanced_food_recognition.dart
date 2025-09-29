@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import '../utils/logger.dart';
 
 class AdvancedFoodRecognition {
   // NUTRITIONIX API CREDENTIALS - YOUR KEYS!
@@ -10,34 +11,34 @@ class AdvancedFoodRecognition {
   
   // Hybrid Food Detection - 3 LAYER SYSTEM
   static Future<Map<String, dynamic>> detectFood(XFile image, {String userLocation = 'Bangkok'}) async {
-    print('🧠 Starting Hybrid AI Detection...');
-    
+    logger.info('Starting Hybrid AI Detection...');
+
     // LAYER 1: Try Nutritionix API (Most Accurate)
     try {
-      print('🔗 Layer 1: Trying Nutritionix API...');
+      logger.info('Layer 1: Trying Nutritionix API...');
       final apiResult = await _detectWithNutritionix(image);
       if (apiResult['confidence'] > 0.6) {
-        print('✅ API Success! Confidence: ${apiResult['confidence']}');
+        logger.info('API Success! Confidence: ${apiResult['confidence']}');
         return apiResult;
       }
     } catch (e) {
-      print('❌ API Failed: $e');
+      logger.warning('API Failed: $e');
     }
-    
+
     // LAYER 2: Simple Image Analysis (Fallback)
     try {
-      print('🎨 Layer 2: Trying Image Analysis...');
+      logger.info('Layer 2: Trying Image Analysis...');
       final analysisResult = await _analyzeImageCharacteristics(image);
       if (analysisResult['confidence'] > 0.4) {
-        print('✅ Image Analysis Success!');
+        logger.info('Image Analysis Success!');
         return analysisResult;
       }
     } catch (e) {
-      print('❌ Image Analysis Failed: $e');
+      logger.warning('Image Analysis Failed: $e');
     }
-    
+
     // LAYER 3: Smart Context Guessing (Always Works)
-    print('🌏 Layer 3: Using Smart Context Guessing...');
+    logger.info('Layer 3: Using Smart Context Guessing...');
     return _guessBasedOnContext(userLocation);
   }
   
@@ -82,7 +83,7 @@ class AdvancedFoodRecognition {
         }
       }
     } catch (e) {
-      print('Nutritionix API error: $e');
+      logger.severe('Nutritionix API error: $e');
       throw Exception('API request failed');
     }
     

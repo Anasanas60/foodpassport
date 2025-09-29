@@ -1,5 +1,6 @@
 import 'package:geolocator/geolocator.dart';
 import 'database_service.dart';
+import '../utils/logger.dart';
 
 class FoodJournalService {
   final DatabaseService _dbService = DatabaseService();
@@ -35,10 +36,10 @@ class FoodJournalService {
       await _dbService.insertFoodEntry(entry);
       await _updateUserStats(calories, foodName);
       await _checkForAchievements(foodName);
-      
-      print('✅ Food entry saved: $foodName');
+
+      logger.info('Food entry saved: $foodName');
     } catch (e) {
-      print('❌ Error saving food entry: $e');
+      logger.severe('Error saving food entry: $e');
       throw Exception('Failed to save food entry: $e');
     }
   }
@@ -48,7 +49,7 @@ class FoodJournalService {
       final entries = await _dbService.getFoodEntries();
       return entries.map((entry) => _deserializeFoodEntry(entry)).toList();
     } catch (e) {
-      print('❌ Error fetching food entries: $e');
+      logger.severe('Error fetching food entries: $e');
       return [];
     }
   }
@@ -66,7 +67,7 @@ class FoodJournalService {
         return entryDate.isAfter(startOfDay) && entryDate.isBefore(endOfDay);
       }).map((entry) => _deserializeFoodEntry(entry)).toList();
     } catch (e) {
-      print('❌ Error fetching entries by date: $e');
+      logger.severe('Error fetching entries by date: $e');
       return [];
     }
   }
@@ -76,7 +77,7 @@ class FoodJournalService {
       final result = await _dbService.deleteFoodEntry(id);
       return result > 0;
     } catch (e) {
-      print('❌ Error deleting food entry: $e');
+      logger.severe('Error deleting food entry: $e');
       return false;
     }
   }
@@ -115,7 +116,7 @@ class FoodJournalService {
         'total_fat': totalFat,
       };
     } catch (e) {
-      print('❌ Error getting nutrition summary: $e');
+      logger.severe('Error getting nutrition summary: $e');
       return {};
     }
   }
@@ -153,7 +154,7 @@ class FoodJournalService {
 
       await _dbService.updateUserStats(newStats);
     } catch (e) {
-      print('❌ Error updating user stats: $e');
+      logger.severe('Error updating user stats: $e');
     }
   }
 
@@ -228,10 +229,10 @@ class FoodJournalService {
           'category': category,
         };
         await _dbService.addPassportStamp(stamp);
-        print('🎉 Passport stamp awarded: $title');
+        logger.info('Passport stamp awarded: $title');
       }
     } catch (e) {
-      print('❌ Error awarding passport stamp: $e');
+      logger.severe('Error awarding passport stamp: $e');
     }
   }
 
@@ -262,7 +263,7 @@ class FoodJournalService {
     try {
       return await _dbService.getPassportStamps();
     } catch (e) {
-      print('❌ Error fetching passport stamps: $e');
+      logger.severe('Error fetching passport stamps: $e');
       return [];
     }
   }
@@ -271,7 +272,7 @@ class FoodJournalService {
     try {
       return await _dbService.getUserStats();
     } catch (e) {
-      print('❌ Error fetching user stats: $e');
+      logger.severe('Error fetching user stats: $e');
       return null;
     }
   }
@@ -279,9 +280,9 @@ class FoodJournalService {
   Future<void> resetUserData() async {
     try {
       await _dbService.resetDatabase();
-      print('✅ User data reset successfully');
+      logger.info('User data reset successfully');
     } catch (e) {
-      print('❌ Error resetting user data: $e');
+      logger.severe('Error resetting user data: $e');
       throw Exception('Failed to reset user data: $e');
     }
   }

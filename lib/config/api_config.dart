@@ -1,6 +1,10 @@
-﻿class ApiConfig {
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+class ApiConfig {
   // Spoonacular API (Primary - AI Food Recognition & Recipes)
-  static const String spoonacularApiKey = 'ece7ade9abab4bd8af32a66dac3cbee4';
+  static String get spoonacularApiKey {
+    return dotenv.env['SPOONACULAR_API_KEY'] ?? '';
+  }
   static const String spoonacularBaseUrl = 'https://api.spoonacular.com';
   
   // Fallback APIs (No keys needed)
@@ -30,18 +34,22 @@
   
   // API Status Check
   static bool get isSpoonacularKeyValid {
-    return spoonacularApiKey.isNotEmpty && spoonacularApiKey != 'ece7ade9abab4bd8af32a66dac3cbee4';
+    return spoonacularApiKey.isNotEmpty;
   }
   
-  // Replace the broken method with:
-static String buildSpoonacularUrl(String endpoint, {Map<String, String>? params}) {
-  var url = '$spoonacularBaseUrl$endpoint?apiKey=$spoonacularApiKey';
+// Refactored to use Uri.https for safer URL construction
+static Uri buildSpoonacularUri(String endpoint, {Map<String, String>? params}) {
+  final queryParams = {'apiKey': spoonacularApiKey};
   if (params != null) {
-    params.forEach((key, value) {
-      url += '&$key=${Uri.encodeComponent(value)}';
-    });
+    queryParams.addAll(params);
   }
-  return url;
+  return Uri.https('api.spoonacular.com', endpoint, queryParams);
+}
+
+// Keep the old method for backward compatibility, but mark as deprecated
+@deprecated
+static String buildSpoonacularUrl(String endpoint, {Map<String, String>? params}) {
+  return buildSpoonacularUri(endpoint, params: params).toString();
 }
 }
 

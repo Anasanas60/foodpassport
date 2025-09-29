@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/allergy.dart';
+import '../utils/logger.dart';
 
 class AllergyService {
   static const String _fallbackApiUrl = 'https://my-json-server.typicode.com/foodallergy/db/allergies';
@@ -32,7 +33,7 @@ class AllergyService {
         return _getFilteredFallbackAllergies(searchQuery);
       }
     } catch (e) {
-      print('❌ Allergy API error: $e');
+      logger.severe('Allergy API error: $e');
       return _getFilteredFallbackAllergies(searchQuery);
     }
   }
