@@ -2,10 +2,12 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 import '../models/food_item.dart' as models;
 import 'emergency_alert_screen.dart';
 import '../services/user_profile_service.dart';
+import '../services/nutritionix_service.dart';
 
 class CameraScreen extends StatefulWidget {
   final CameraDescription camera;
@@ -26,6 +28,8 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   String? _detectedText;
   List<String> _detectedAllergens = [];
   bool _isTranslateMode = false;
+
+  final NutritionixService _nutritionixService = NutritionixService();
 
   @override
   void initState() {
@@ -103,7 +107,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.black.withValues(alpha:0.7),
+              Colors.black.withValues(alpha: 0.7),
               Colors.transparent,
             ],
           ),
@@ -127,9 +131,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
               const Spacer(),
               IconButton(
                 icon: const Icon(Icons.flash_on, color: Colors.white),
-                onPressed: () {
-                  _toggleFlash();
-                },
+                onPressed: _toggleFlash,
               ),
             ],
           ),
@@ -158,7 +160,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha:0.9),
+        color: Colors.white.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: Theme.of(context).colorScheme.primary,
@@ -188,7 +190,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha:0.9),
+        color: Colors.white.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: Theme.of(context).colorScheme.secondary,
@@ -232,7 +234,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.red.withValues(alpha:0.9),
+        color: Colors.red.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -267,7 +269,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
             colors: [
-              Colors.black.withValues(alpha:0.8),
+              Colors.black.withValues(alpha: 0.8),
               Colors.transparent,
             ],
           ),
@@ -278,7 +280,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
               margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha:0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -362,7 +364,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha:0.2),
+                color: Colors.black.withValues(alpha: 0.2),
                 blurRadius: 16,
                 offset: const Offset(0, -4),
               ),
@@ -429,7 +431,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withValues(alpha:0.1),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: Theme.of(context).colorScheme.primary,
@@ -471,28 +473,19 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Detected Ingredients:',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
+              const Text('Detected Ingredients:', style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 4),
               Wrap(
                 spacing: 8,
                 runSpacing: 4,
                 children: _detectedAllergens
-                    .map((allergen) => Chip(
-                          label: Text(allergen),
-                          backgroundColor: Colors.grey[100],
-                        ))
+                    .map((allergen) => Chip(label: Text(allergen), backgroundColor: Colors.grey[100]))
                     .toList(),
               ),
             ],
           ),
         const SizedBox(height: 16),
-        const Text(
-          'Nutrition Information:',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
+        const Text('Nutrition Information:', style: TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         const Row(
           children: [
@@ -511,16 +504,13 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Translated Text:',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
+        const Text('Translated Text:', style: TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.secondary.withValues(alpha:0.1),
+            color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(_detectedText!),
@@ -539,18 +529,33 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       _capturedImage = image;
       _isImageCaptured = true;
 
-      // Simulate AI processing with mock data delay
-      await Future.delayed(const Duration(seconds: 2));
+      final recognizedText = await recognizeTextFromImage(image.path);
+      final queryText = recognizedText.isNotEmpty ? recognizedText : "unknown food";
+
+      final apiResult = await _nutritionixService.searchFood(queryText);
+
+      final foods = apiResult['foods'] as List<dynamic>?;
+      final detectedDish = (foods != null && foods.isNotEmpty) ? (foods[0]['food_name'] as String) : queryText;
+
+      final detectedAllergens = <String>[];
+      if (foods != null && foods.isNotEmpty) {
+        final food = foods[0];
+        final String ingredients = (food['nf_ingredient_statement'] ?? '').toLowerCase();
+
+        if (ingredients.contains('egg')) detectedAllergens.add('eggs');
+        if (ingredients.contains('milk') || ingredients.contains('dairy')) detectedAllergens.add('dairy');
+        if (ingredients.contains('gluten')) detectedAllergens.add('gluten');
+      }
+
       setState(() {
         if (_isTranslateMode) {
-          _detectedText = 'Grilled Salmon with Lemon Butter Sauce';
-          _detectedAllergens = ['fish', 'dairy'];
+          _detectedText = detectedDish;
           _detectedDish = null;
         } else {
-          _detectedDish = 'French Crêpe';
-          _detectedAllergens = ['eggs', 'dairy', 'gluten'];
+          _detectedDish = detectedDish;
           _detectedText = null;
         }
+        _detectedAllergens = detectedAllergens;
         _checkUserAllergies();
         _isProcessing = false;
       });
@@ -558,15 +563,23 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       setState(() {
         _isProcessing = false;
       });
-      _showErrorDialog('Failed to capture image: $e');
+      _showErrorDialog('Failed to analyze image: $e');
     }
+  }
+
+  Future<String> recognizeTextFromImage(String imagePath) async {
+    final inputImage = InputImage.fromFilePath(imagePath);
+    final textRecognizer = TextRecognizer();
+
+    final recognizedText = await textRecognizer.processImage(inputImage);
+    await textRecognizer.close();
+
+    return recognizedText.text;
   }
 
   void _toggleFlash() {
     if (!_controller.value.isInitialized) return;
-    _controller.setFlashMode(
-      _controller.value.flashMode == FlashMode.torch ? FlashMode.off : FlashMode.torch,
-    );
+    _controller.setFlashMode(_controller.value.flashMode == FlashMode.torch ? FlashMode.off : FlashMode.torch);
     setState(() {});
   }
 
@@ -601,28 +614,21 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
 
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => EmergencyAlertScreen(foodItem: foodItem),
-      ),
+      MaterialPageRoute(builder: (context) => EmergencyAlertScreen(foodItem: foodItem)),
     );
   }
 
   void _saveToJournal() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Saved to Food Journal')),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved to Food Journal')));
   }
 
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Analysis Failed'),
-        content: Text(message),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
-        ],
-      ),
+      builder: (context) =>
+          AlertDialog(title: const Text('Analysis Failed'), content: Text(message), actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+      ]),
     );
   }
 }
@@ -631,30 +637,14 @@ class NutritionInfoItem extends StatelessWidget {
   final String label;
   final String value;
 
-  const NutritionInfoItem({
-    super.key,
-    required this.label,
-    required this.value,
-  });
+  const NutritionInfoItem({super.key, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
-          ),
-        ),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
       ],
     );
   }
