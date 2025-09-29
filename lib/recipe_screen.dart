@@ -68,73 +68,106 @@ class _RecipeScreenState extends State<RecipeScreen> {
     }
   }
 
-  Widget _buildAllergyWarnings(ThemeData theme) {
+  Widget _buildAllergyWarnings(ThemeData theme, ColorScheme colorScheme) {
     if (_emergencyAllergens.isEmpty) return const SizedBox();
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.errorContainer,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.error),
+        color: Colors.red[50],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.red, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.red.withAlpha(50),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.warning_amber, color: theme.colorScheme.error),
-              const SizedBox(width: 8),
-              Text(
-                'ALLERGY ALERT',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: theme.colorScheme.error,
-                  fontWeight: FontWeight.bold,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.warning_amber, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'ALLERGY ALERT',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: Colors.red[700],
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          Text(
+            '⚠️ This dish contains: ${_emergencyAllergens.join(', ')}',
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: Colors.red[700],
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 8),
           Text(
-            'This dish contains: ${_emergencyAllergens.join(', ')}',
-            style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Avoid if you have these allergies',
-            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error.withOpacity(0.8)),
+            'Avoid consumption if you have allergies to these ingredients',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: Colors.red[600],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDetectedAllergens(ThemeData theme) {
+  Widget _buildDetectedAllergens(ThemeData theme, ColorScheme colorScheme) {
     if (_detectedAllergens.isEmpty) return const SizedBox();
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.colorScheme.primary),
+        color: colorScheme.secondary.withAlpha(20),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colorScheme.secondary),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Icon(Icons.info_outline, color: theme.colorScheme.primary),
-              const SizedBox(width: 8),
-              Text(
-                'Contains: ${_detectedAllergens.join(', ')}',
-                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.primary),
-              ),
-            ],
+          Icon(Icons.info_outline, color: colorScheme.secondary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Ingredients Info',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: colorScheme.secondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Contains: ${_detectedAllergens.join(', ')}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.secondary,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -143,15 +176,44 @@ class _RecipeScreenState extends State<RecipeScreen> {
 
   Widget _buildRecipeContent(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Analyzing recipe with Spoonacular AI...'),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withAlpha(20),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.restaurant,
+                size: 40,
+                color: colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Analyzing Recipe',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF333333),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Using Spoonacular AI to generate the perfect recipe',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            const CircularProgressIndicator(),
           ],
         ),
       );
@@ -162,18 +224,48 @@ class _RecipeScreenState extends State<RecipeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64, color: theme.colorScheme.onSurface.withOpacity(0.4)),
-            const SizedBox(height: 16),
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.red[50],
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.error_outline,
+                size: 50,
+                color: Colors.red[400],
+              ),
+            ),
+            const SizedBox(height: 20),
             Text(
-              'Failed to load recipe data',
-              style: theme.textTheme.titleMedium,
+              'Recipe Unavailable',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF333333),
+              ),
             ),
             const SizedBox(height: 8),
-            Text('Please check your connection and try again', style: theme.textTheme.bodyMedium),
-            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Text(
+                'We couldn\'t load the recipe data. Please check your connection and try again.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _loadRecipeData,
-              child: const Text('Retry'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colorScheme.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Try Again'),
             ),
           ],
         ),
@@ -185,9 +277,34 @@ class _RecipeScreenState extends State<RecipeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.restaurant_menu, size: 64, color: theme.colorScheme.onSurface.withOpacity(0.4)),
-            const SizedBox(height: 16),
-            Text('No recipe data available', style: theme.textTheme.titleMedium),
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceVariant,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.restaurant_menu,
+                size: 50,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'No Recipe Found',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF333333),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'We couldn\'t find a recipe for "${widget.dishName}"',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.grey[600],
+              ),
+            ),
           ],
         ),
       );
@@ -200,171 +317,364 @@ class _RecipeScreenState extends State<RecipeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Achievement Banner
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [colorScheme.primary, const Color(0xFFFF8A80)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.celebration, color: Colors.white, size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Recipe Unlocked!',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '+10 XP • New dish discovered',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.white.withAlpha(200),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           // Recipe Header
           Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            elevation: 4,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     recipe.name,
-                    style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 12,
-                    children: [
-                      Chip(
-                        label: Text(recipe.cuisine),
-                        backgroundColor: theme.colorScheme.primaryContainer,
-                      ),
-                      Chip(
-                        label: Text(recipe.category),
-                        backgroundColor: theme.colorScheme.secondaryContainer,
-                      ),
-                      Chip(
-                        label: Text(recipe.difficulty),
-                        backgroundColor: theme.colorScheme.tertiaryContainer,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.schedule, size: 16, color: theme.colorScheme.onSurfaceVariant),
-                      const SizedBox(width: 4),
-                      Text(recipe.cookTime, style: theme.textTheme.bodyMedium),
-                      const SizedBox(width: 16),
-                      Icon(Icons.people, size: 16, color: theme.colorScheme.onSurfaceVariant),
-                      const SizedBox(width: 4),
-                      Text('Serves ${recipe.servings}', style: theme.textTheme.bodyMedium),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Allergy Warnings
-          _buildAllergyWarnings(theme),
-          _buildDetectedAllergens(theme),
-
-          const SizedBox(height: 16),
-
-          // Ingredients Section
-          Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Ingredients', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  ...recipe.ingredients.map(
-                    (ingredient) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(
-                        children: [
-                          Icon(Icons.circle, size: 8, color: theme.colorScheme.primary),
-                          const SizedBox(width: 12),
-                          Expanded(child: Text(ingredient, style: theme.textTheme.bodyMedium)),
-                        ],
-                      ),
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF333333),
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Instructions Section
-          Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Instructions', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
-                  ...recipe.instructions.asMap().entries.map(
-                        (entry) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 24,
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    '${entry.key + 1}',
-                                    style: theme.textTheme.bodySmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(child: Text(entry.value, style: theme.textTheme.bodyMedium)),
-                            ],
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary.withAlpha(25),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: colorScheme.primary),
+                        ),
+                        child: Text(
+                          recipe.cuisine,
+                          style: TextStyle(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
                           ),
                         ),
                       ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: colorScheme.secondary.withAlpha(25),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: colorScheme.secondary),
+                        ),
+                        child: Text(
+                          recipe.category,
+                          style: TextStyle(
+                            color: colorScheme.secondary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withAlpha(25),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.orange),
+                        ),
+                        child: Text(
+                          recipe.difficulty,
+                          style: const TextStyle(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      _buildInfoItem(
+                        icon: Icons.schedule,
+                        text: recipe.cookTime,
+                        color: colorScheme.primary,
+                      ),
+                      const SizedBox(width: 20),
+                      _buildInfoItem(
+                        icon: Icons.people,
+                        text: 'Serves ${recipe.servings}',
+                        color: colorScheme.secondary,
+                      ),
+                      const SizedBox(width: 20),
+                      _buildInfoItem(
+                        icon: Icons.local_fire_department,
+                        text: 'Nutrition Info',
+                        color: Colors.orange,
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
-          // Tips Section
-          if (recipe.tips.isNotEmpty) ...[
-            Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Chef\'s Tips', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
-                    ...recipe.tips.map(
-                      (tip) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(
-                          children: [
-                            Icon(Icons.lightbulb_outline, size: 16, color: theme.colorScheme.secondary),
-                            const SizedBox(width: 12),
-                            Expanded(child: Text(tip, style: theme.textTheme.bodyMedium)),
-                          ],
+          // Allergy Warnings
+          _buildAllergyWarnings(theme, colorScheme),
+          
+          if (_detectedAllergens.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _buildDetectedAllergens(theme, colorScheme),
+          ],
+
+          const SizedBox(height: 20),
+
+          // Ingredients Section
+          _buildSectionCard(
+            title: 'Ingredients',
+            icon: Icons.shopping_basket,
+            color: colorScheme.primary,
+            child: Column(
+              children: recipe.ingredients.map(
+                (ingredient) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary.withAlpha(20),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: colorScheme.primary),
+                        ),
+                        child: Icon(
+                          Icons.circle,
+                          size: 8,
+                          color: colorScheme.primary,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          ingredient,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: const Color(0xFF333333),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ).toList(),
             ),
-          ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Instructions Section
+          _buildSectionCard(
+            title: 'Cooking Instructions',
+            icon: Icons.menu_book,
+            color: colorScheme.secondary,
+            child: Column(
+              children: recipe.instructions.asMap().entries.map(
+                (entry) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: colorScheme.secondary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${entry.key + 1}',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          entry.value,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: const Color(0xFF333333),
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ).toList(),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Tips Section
+          if (recipe.tips.isNotEmpty) 
+          _buildSectionCard(
+            title: 'Chef\'s Tips',
+            icon: Icons.lightbulb,
+            color: Colors.amber,
+            child: Column(
+              children: recipe.tips.map(
+                (tip) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.lightbulb_outline, size: 20, color: Colors.amber),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          tip,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: const Color(0xFF333333),
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ).toList(),
+            ),
+          ),
+
+          const SizedBox(height: 20),
         ],
+      ),
+    );
+  }
+
+  Widget _buildInfoItem({required IconData icon, required String text, required Color color}) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: TextStyle(
+            color: const Color(0xFF333333),
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionCard({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required Widget child,
+  }) {
+    final theme = Theme.of(context);
+    
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withAlpha(25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: color, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF333333),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            child,
+          ],
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Recipe: ${widget.dishName}'),
+        title: Text(
+          'Recipe Details',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: colorScheme.onPrimary,
+          ),
+        ),
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
+        elevation: 0,
+        centerTitle: true,
         actions: [
           if (_recipeData != null)
             IconButton(
